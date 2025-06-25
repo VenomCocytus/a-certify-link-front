@@ -1,0 +1,144 @@
+.dashboard {
+    padding: 0;
+}
+
+.dashboard-loading {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.certificate-table-card .p-datatable {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.certificate-table-card .p-datatable .p-datatable-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem;
+}
+
+.certificate-table-card .p-datatable .p-datatable-thead > tr > th {
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.certificate-table-card .p-datatable .p-datatable-tbody > tr > td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.certificate-table-card .p-datatable .p-datatable-tbody > tr:hover {
+    background: #f8f9fa;
+}
+
+/* Tag styling for status */
+.p-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* Chart container */
+.p-chart {
+    position: relative;
+}
+
+/* Statistics cards styling */
+.statistics-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.statistics-card .p-card-content {
+    padding: 1.5rem;
+}
+
+.statistics-card .p-card-title {
+    color: white;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statistics-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.statistics-change {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.statistics-change.positive {
+    color: #4ade80;
+}
+
+.statistics-change.negative {
+    color: #f87171;
+}
+
+/* Activity feed styling */
+.activity-item {
+    padding: 0.75rem;
+    border-left: 3px solid #e9ecef;
+    margin-bottom: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 0 6px 6px 0;
+}
+
+.activity-item:last-child {
+    margin-bottom: 0;
+}
+
+.activity-item.success {
+    border-left-color: #28a745;
+}
+
+.activity-item.warning {
+    border-left-color: #ffc107;
+}
+
+.activity-item.info {
+    border-left-color: #17a2b8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 0.5rem;
+    }
+
+    .certificate-table-card .p-datatable .p-datatable-thead > tr > th,
+    .certificate-table-card .p-datatable .p-datatable-tbody > tr > td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .statistics-value {
+        font-size: 1.5rem;
+    }
+
+    .p-chart {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .certificate-table-card .p-datatable-responsive-scroll .p-datatable-tbody {
+        font-size: 0.75rem;
+    }
+}

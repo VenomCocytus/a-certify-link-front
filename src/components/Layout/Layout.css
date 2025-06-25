@@ -1,0 +1,107 @@
+.layout-wrapper {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.layout-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border: none;
+    border-radius: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    padding: 0.5rem 1rem;
+}
+
+.layout-topbar .p-menubar-root-list {
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .layout-topbar .p-menubar-root-list {
+        display: flex;
+    }
+}
+
+.layout-main {
+    padding: 1rem;
+    min-height: calc(100vh - 70px);
+}
+
+.layout-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.layout-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e9ecef;
+}
+
+.sidebar-header {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-content {
+    padding: 1rem;
+}
+
+.sidebar-content .p-menu {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.sidebar-content .p-menu .p-menuitem-link {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.25rem;
+    transition: all 0.3s ease;
+}
+
+.sidebar-content .p-menu .p-menuitem-link:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.sidebar-content .p-menu .p-menuitem-link.p-highlight {
+    background-color: #007ad9;
+    color: #ffffff;
+}
+
+/* User menu styling */
+.layout-topbar .p-menubar-end .cursor-pointer:hover {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 0.5rem;
+}
+
+/* Badge styling */
+.p-badge.p-badge-danger {
+    background-color: #dc3545;
+    color: #ffffff;
+    font-size: 0.75rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .layout-main {
+        padding: 0.5rem;
+    }
+
+    .layout-topbar {
+        padding: 0.5rem;
+    }
+
+    .layout-topbar .text-xl {
+        font-size: 1rem;
+    }
+
+    .layout-topbar .flex.align-items-center.gap-2 .flex.flex-column {
+        display: none;
+    }
+}
