@@ -351,7 +351,6 @@ const Dashboard = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="p-datatable-gridlines"
                         emptyMessage="No certificates found."
-                        responsiveLayout="scroll"
                     >
                         <Column field="reference" header="Reference" sortable />
                         <Column field="policyNumber" header="Policy Number" sortable />
