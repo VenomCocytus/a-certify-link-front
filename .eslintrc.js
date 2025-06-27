@@ -52,7 +52,7 @@ module.exports = {
         'comma-dangle': ['warn', 'never'],
         'object-curly-spacing': ['warn', 'always'],
         'array-bracket-spacing': ['warn', 'never'],
-        'indent': ['warn', 2, { SwitchCase: 1 }],
+        'indent': ['warn', 4, { SwitchCase: 1 }],
         'linebreak-style': 'off',
         'eol-last': 'warn',
         'no-trailing-spaces': 'warn',
