@@ -6,32 +6,32 @@ import { Avatar } from 'primereact/avatar';
 import { Menu } from 'primereact/menu';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import ProfileSettings from '../Profile/ProfileSettings';
 import './Layout.css';
 
 const Layout = ({ children }) => {
     const [sidebarVisible, setSidebarVisible] = useState(false);
+    const [profileVisible, setProfileVisible] = useState(false);
     const { user, logout } = useAuth();
     const { showSuccess } = useToast();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         showSuccess('Logged out successfully');
     };
 
     // User menu items
     const userMenuItems = [
         {
-            label: 'Profile',
+            label: 'Profile Settings',
             icon: 'pi pi-user',
-            command: () => {
-                // Handle profile action
-            }
+            command: () => setProfileVisible(true)
         },
         {
-            label: 'Settings',
+            label: 'Account Settings',
             icon: 'pi pi-cog',
             command: () => {
-                // Handle settings action
+                // Handle account settings
             }
         },
         {
@@ -182,7 +182,7 @@ const Layout = ({ children }) => {
                 id="user-menu"
             />
             <div
-                className="flex align-items-center cursor-pointer"
+                className="flex align-items-center cursor-pointer p-2 border-round hover:surface-100"
                 onClick={(event) => window.userMenu?.toggle(event)}
             >
                 <Avatar
@@ -190,13 +190,17 @@ const Layout = ({ children }) => {
                     icon="pi pi-user"
                     className="mr-2"
                     shape="circle"
+                    size="normal"
                 />
                 <div className="flex flex-column align-items-start">
           <span className="font-medium text-900">
-            {user?.name || user?.email || 'User'}
+            {user?.firstName && user?.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user?.email || 'User'
+            }
           </span>
                     <span className="text-sm text-600">
-            {user?.role || 'Member'}
+            {user?.role?.name || user?.role || 'Member'}
           </span>
                 </div>
                 <i className="pi pi-chevron-down ml-2 text-600"></i>
@@ -237,6 +241,12 @@ const Layout = ({ children }) => {
                     {children}
                 </div>
             </div>
+
+            {/* Profile Settings Dialog */}
+            <ProfileSettings
+                visible={profileVisible}
+                onHide={() => setProfileVisible(false)}
+            />
         </div>
     );
 };
