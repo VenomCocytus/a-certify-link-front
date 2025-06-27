@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL - update this to match your backend
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
+// Base URL from the API documentation
+const BASE_URL = 'https://ppcoreeatci.asacitech.com/api/v1';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -9,13 +9,12 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    withCredentials: true, // Important for HTTP-only cookies
 });
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -26,92 +25,31 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle token refresh and errors
+// Response interceptor to handle errors
 apiClient.interceptors.response.use(
     (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            try {
-                // Try to refresh the token
-                const refreshResponse = await apiClient.post('/auth/refresh-token');
-                const { accessToken } = refreshResponse.data;
-
-                localStorage.setItem('accessToken', accessToken);
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-                return apiClient(originalRequest);
-            } catch (refreshError) {
-                // Refresh failed, redirect to login
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-                return Promise.reject(refreshError);
-            }
+    (error) => {
+        if (error.response?.status === 401) {
+            // Token expired or invalid
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
         }
-
         return Promise.reject(error);
     }
 );
 
 export const apiService = {
     // Authentication endpoints
-    login: (loginData) =>
-        apiClient.post('/auth/login', loginData),
+    login: (email, password, clientName) =>
+        apiClient.post('/auth/tokens', { email, password, client_name: clientName }),
 
-    register: (registerData) =>
-        apiClient.post('/auth/register', registerData),
+    getCurrentUser: () =>
+        apiClient.get('/auth/user'),
 
-    getProfile: () =>
-        apiClient.get('/auth/profile'),
+    logout: () =>
+        apiClient.delete('/auth/tokens'),
 
-    updateProfile: (profileData) =>
-        apiClient.put('/auth/profile', profileData),
-
-    changePassword: (passwordData) =>
-        apiClient.post('/auth/change-password', passwordData),
-
-    forgotPassword: (email) =>
-        apiClient.post('/auth/forgot-password', { email }),
-
-    resetPassword: (resetData) =>
-        apiClient.post('/auth/reset-password', resetData),
-
-    verifyEmail: (token, userId) =>
-        apiClient.get(`/auth/verify-email/${userId}/${token}`),
-
-    resendEmailVerification: (email) =>
-        apiClient.post('/auth/resend-email-verification', { email }),
-
-    setupTwoFactor: () =>
-        apiClient.post('/auth/setup-two-factor'),
-
-    enableTwoFactor: (code) =>
-        apiClient.post('/auth/enable-two-factor', { code }),
-
-    disableTwoFactor: (data) =>
-        apiClient.post('/auth/disable-two-factor', data),
-
-    refreshToken: () =>
-        apiClient.post('/auth/refresh-token'),
-
-    logout: (logoutAll = false) =>
-        apiClient.post('/auth/logout', { logoutAll }),
-
-    // Admin endpoints
-    createUser: (userData) =>
-        apiClient.post('/auth/create-user', userData),
-
-    blockUser: (blockData) =>
-        apiClient.post('/auth/block-user', blockData),
-
-    healthCheck: () =>
-        apiClient.get('/auth/health'),
-
-    // Certificate endpoints (keeping the original eAttestation API structure)
+    // Certificate endpoints
     getCertificates: (params = {}) =>
         apiClient.get('/certificates', { params }),
 

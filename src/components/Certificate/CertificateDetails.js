@@ -15,7 +15,9 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
     const [actionReason, setActionReason] = useState('');
     const { showSuccess, showError } = useToast();
 
-    if (!certificate) return null;
+    if (!certificate) {
+        return null;
+    }
 
     const formatCurrency = (value) => {
         return new Intl.NumberFormat('fr-CM', {
