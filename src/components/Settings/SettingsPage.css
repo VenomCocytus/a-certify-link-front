@@ -1,0 +1,239 @@
+.settings-page {
+    padding: 0;
+}
+
+.settings-header {
+    text-align: center;
+}
+
+.settings-card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.settings-card .p-tabview-nav {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    padding: 0 1.5rem;
+}
+
+.settings-card .p-tabview-nav li .p-tabview-nav-link {
+    border: none;
+    background: transparent;
+    padding: 1rem 1.5rem;
+    margin-right: 0.5rem;
+    border-radius: 6px 6px 0 0;
+}
+
+.settings-card .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    background: #ffffff;
+    border-bottom: 2px solid #007ad9;
+}
+
+.settings-card .p-tabview-panels {
+    padding: 0;
+}
+
+.settings-section {
+    padding: 0;
+}
+
+.section-title {
+    color: #495057;
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.notification-settings,
+.security-settings,
+.data-actions {
+    padding: 0;
+}
+
+.notification-item,
+.security-item,
+.action-item {
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+}
+
+.notification-item:last-child,
+.security-item:last-child,
+.action-item:last-child {
+    margin-bottom: 0;
+}
+
+.notification-item h5,
+.security-item h5,
+.action-item h5 {
+    color: #495057;
+    font-weight: 600;
+    margin: 0;
+}
+
+.notification-item p,
+.security-item p,
+.action-item p {
+    color: #6c757d;
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+}
+
+.security-actions {
+    padding: 1rem;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+}
+
+.security-actions h4 {
+    color: #856404;
+    margin-bottom: 1rem;
+}
+
+.privacy-info {
+    padding: 1rem;
+    background: #e8f4f8;
+    border: 1px solid #bee5eb;
+    border-radius: 8px;
+}
+
+.settings-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Select Button customization */
+.p-selectbutton .p-button {
+    border-radius: 6px;
+}
+
+.p-selectbutton .p-button.p-highlight {
+    background: #007ad9;
+    border-color: #007ad9;
+}
+
+/* Slider customization */
+.p-slider {
+    background: #dee2e6;
+}
+
+.p-slider .p-slider-handle {
+    background: #007ad9;
+    border-color: #007ad9;
+}
+
+.p-slider .p-slider-range {
+    background: #007ad9;
+}
+
+/* Theme support */
+.theme-dark .settings-card {
+    background: #1e1e1e;
+    border-color: #2a2a2a;
+}
+
+.theme-dark .settings-card .p-tabview-nav {
+    background: #2a2a2a;
+    border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .settings-card .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    background: #1e1e1e;
+}
+
+.theme-dark .section-title {
+    border-bottom-color: #2a2a2a;
+}
+
+.theme-dark .notification-item,
+.theme-dark .security-item,
+.theme-dark .action-item {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+.theme-dark .security-actions {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+.theme-dark .privacy-info {
+    background: #2a2a2a;
+    border-color: #3a3a3a;
+}
+
+.theme-dark .settings-footer {
+    border-top-color: #3a3a3a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .settings-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .settings-card .p-tabview-nav li .p-tabview-nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .settings-card .p-tabview-nav {
+        margin: -1rem -1rem 1rem -1rem;
+        padding: 0 1rem;
+    }
+
+    .notification-item,
+    .security-item,
+    .action-item {
+        padding: 0.75rem;
+    }
+
+    .notification-item .flex,
+    .security-item .flex,
+    .action-item .flex {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .settings-footer .flex {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .settings-footer .flex .p-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .section-title {
+        font-size: 1rem;
+    }
+
+    .notification-item h5,
+    .security-item h5,
+    .action-item h5 {
+        font-size: 0.875rem;
+    }
+
+    .notification-item p,
+    .security-item p,
+    .action-item p {
+        font-size: 0.75rem;
+    }
+
+    .p-selectbutton .p-button {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+}

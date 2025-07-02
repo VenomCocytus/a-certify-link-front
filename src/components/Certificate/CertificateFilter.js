@@ -13,28 +13,36 @@ const CertificateFilter = ({ onFilterChange }) => {
         status: '',
         dateFrom: null,
         dateTo: null,
-        certificateType: ''
+        certificateType: '',
+        channel: '' // **NEW**: Added channel filter
     });
 
     const [certificateTypes, setCertificateTypes] = useState([]);
     const [expanded, setExpanded] = useState(false);
 
-    // Status options
+    // **UPDATED**: Status options based on API responses
     const statusOptions = [
         { label: 'All Status', value: '' },
         { label: 'Active', value: 'active' },
         { label: 'Pending', value: 'pending' },
-        { label: 'Suspended', value: 'suspended' },
-        { label: 'Cancelled', value: 'cancelled' }
+        { label: 'Sent to Storage', value: 'sent_to_storage' }, // **NEW**
+        { label: 'Not Sent to Storage', value: 'not_sent_to_storage' } // **NEW**
     ];
 
-    // Mock certificate types - replace with API call
+    // **NEW**: Channel options
+    const channelOptions = [
+        { label: 'All Channels', value: '' },
+        { label: 'Web', value: 'web' },
+        { label: 'API', value: 'api' }
+    ];
+
+    // **UPDATED**: Certificate types based on API enum values
     const mockCertificateTypes = [
         { label: 'All Types', value: '' },
-        { label: 'CIMA', value: 'CIMA' },
-        { label: 'POOLTPV', value: 'POOLTPV' },
-        { label: 'MATCA', value: 'MATCA' },
-        { label: 'POOLTPVBLEU', value: 'POOLTPVBLEU' }
+        { label: 'CIMA', value: 'cima' },
+        { label: 'POOLTPV', value: 'pooltpv' },
+        { label: 'MATCA', value: 'matca' },
+        { label: 'POOLTPV BLEU', value: 'pooltpvbleu' }
     ];
 
     useEffect(() => {
@@ -50,7 +58,7 @@ const CertificateFilter = ({ onFilterChange }) => {
             const response = await apiService.getCertificateTypes();
             const types = response.data?.map(type => ({
                 label: type.name || type.label,
-                value: type.id || type.value
+                value: type.code || type.id || type.value
             })) || [];
 
             setCertificateTypes([
@@ -76,7 +84,8 @@ const CertificateFilter = ({ onFilterChange }) => {
             status: '',
             dateFrom: null,
             dateTo: null,
-            certificateType: ''
+            certificateType: '',
+            channel: '' // **NEW**
         });
     };
 
@@ -85,7 +94,8 @@ const CertificateFilter = ({ onFilterChange }) => {
             filters.status ||
             filters.dateFrom ||
             filters.dateTo ||
-            filters.certificateType;
+            filters.certificateType ||
+            filters.channel; // **NEW**
     };
 
     const cardHeader = (
@@ -127,7 +137,7 @@ const CertificateFilter = ({ onFilterChange }) => {
             <i className="pi pi-search"></i>
           </span>
                     <InputText
-                        placeholder="Search by reference, policy number, holder name, or vehicle..."
+                        placeholder="Search by reference, organization, office, or user name..." // **UPDATED**: Changed placeholder to match API data structure
                         value={filters.search}
                         onChange={(e) => handleInputChange('search', e.target.value)}
                         className="w-full"
@@ -179,6 +189,23 @@ const CertificateFilter = ({ onFilterChange }) => {
                             </div>
                         </div>
 
+                        {/* **NEW**: Channel filter */}
+                        <div className="col-12 md:col-6 lg:col-3">
+                            <div className="field">
+                                <label htmlFor="channel" className="block text-900 font-medium mb-2">
+                                    Channel
+                                </label>
+                                <Dropdown
+                                    id="channel"
+                                    value={filters.channel}
+                                    options={channelOptions}
+                                    onChange={(e) => handleInputChange('channel', e.value)}
+                                    placeholder="Select channel"
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+
                         <div className="col-12 md:col-6 lg:col-3">
                             <div className="field">
                                 <label htmlFor="dateFrom" className="block text-900 font-medium mb-2">
@@ -215,20 +242,26 @@ const CertificateFilter = ({ onFilterChange }) => {
                         </div>
                     </div>
 
-                    {/* Quick filter buttons */}
+                    {/* **UPDATED**: Quick filter buttons */}
                     <div className="flex flex-wrap gap-2 mt-3">
                         <small className="text-600 mr-2 align-self-center">Quick filters:</small>
                         <Button
-                            label="Active"
+                            label="Sent to Storage"
                             size="small"
-                            className={`p-button-outlined ${filters.status === 'active' ? 'p-button-primary' : ''}`}
-                            onClick={() => handleInputChange('status', filters.status === 'active' ? '' : 'active')}
+                            className={`p-button-outlined ${filters.status === 'sent_to_storage' ? 'p-button-success' : ''}`}
+                            onClick={() => handleInputChange('status', filters.status === 'sent_to_storage' ? '' : 'sent_to_storage')}
                         />
                         <Button
-                            label="Pending"
+                            label="Not Sent"
                             size="small"
-                            className={`p-button-outlined ${filters.status === 'pending' ? 'p-button-warning' : ''}`}
-                            onClick={() => handleInputChange('status', filters.status === 'pending' ? '' : 'pending')}
+                            className={`p-button-outlined ${filters.status === 'not_sent_to_storage' ? 'p-button-warning' : ''}`}
+                            onClick={() => handleInputChange('status', filters.status === 'not_sent_to_storage' ? '' : 'not_sent_to_storage')}
+                        />
+                        <Button
+                            label="Web Channel"
+                            size="small"
+                            className={`p-button-outlined ${filters.channel === 'web' ? 'p-button-info' : ''}`}
+                            onClick={() => handleInputChange('channel', filters.channel === 'web' ? '' : 'web')}
                         />
                         <Button
                             label="This Month"

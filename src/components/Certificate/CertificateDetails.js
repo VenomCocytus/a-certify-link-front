@@ -12,6 +12,10 @@ import { useToast } from '../../contexts/ToastContext';
 
 const CertificateDetails = ({ certificate, visible, onHide }) => {
     const [loading, setLoading] = useState(false);
+    const [downloadLoading, setDownloadLoading] = useState({
+        external: false,
+        database: false
+    });
     const [actionReason, setActionReason] = useState('');
     const { showSuccess, showError } = useToast();
 
@@ -19,35 +23,31 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
         return null;
     }
 
-    const formatCurrency = (value) => {
-        return new Intl.NumberFormat('fr-CM', {
-            style: 'currency',
-            currency: 'XAF'
-        }).format(value);
-    };
-
     const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('fr-CM', {
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     };
 
-    const getStatusSeverity = (status) => {
-        const severityMap = {
-            active: 'success',
-            pending: 'warning',
-            suspended: 'danger',
-            cancelled: 'secondary'
-        };
-        return severityMap[status] || 'info';
+    // **UPDATED**: Get status severity based on API structure
+    const getStatusSeverity = (sentToStorage) => {
+        return sentToStorage ? 'success' : 'warning';
     };
 
-    const handleDownload = async () => {
-        setLoading(true);
+    const getStatusLabel = (sentToStorage) => {
+        return sentToStorage ? 'SENT TO STORAGE' : 'NOT SENT TO STORAGE';
+    };
+
+    // **NEW**: Download from external API using production reference
+    const handleDownloadExternal = async () => {
+        setDownloadLoading(prev => ({ ...prev, external: true }));
         try {
-            const response = await apiService.downloadCertificate(certificate.reference);
+            const response = await apiService.downloadCertificateExternal(certificate.reference);
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -55,11 +55,48 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
             link.download = `Certificate-${certificate.reference}.pdf`;
             link.click();
             window.URL.revokeObjectURL(url);
-            showSuccess('Certificate downloaded successfully');
+            showSuccess('Certificate downloaded successfully from external API');
         } catch (error) {
-            showError('Failed to download certificate');
+            showError('Failed to download certificate from external API');
         } finally {
-            setLoading(false);
+            setDownloadLoading(prev => ({ ...prev, external: false }));
+        }
+    };
+
+    // **NEW**: Download from database (gets download link first)
+    const handleDownloadFromDatabase = async () => {
+        setDownloadLoading(prev => ({ ...prev, database: true }));
+        try {
+            // First get the download link from database
+            const linkResponse = await apiService.downloadCertificateLinkFromDb(certificate.reference);
+
+            if (linkResponse.data?.data?.downloadLink) {
+                // Use the provided download link
+                const link = document.createElement('a');
+                link.href = linkResponse.data.data.downloadLink;
+                link.download = `Certificate-${certificate.reference}.pdf`;
+                link.click();
+                showSuccess('Certificate downloaded successfully from database');
+            } else {
+                showError('Download link not available in database');
+            }
+        } catch (error) {
+            // Fallback to direct certificate download
+            try {
+                const response = await apiService.downloadCertificateByReference(certificate.reference);
+                const blob = new Blob([response.data], { type: 'application/pdf' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Certificate-${certificate.reference}.pdf`;
+                link.click();
+                window.URL.revokeObjectURL(url);
+                showSuccess('Certificate downloaded successfully');
+            } catch (fallbackError) {
+                showError('Failed to download certificate from database');
+            }
+        } finally {
+            setDownloadLoading(prev => ({ ...prev, database: false }));
         }
     };
 
@@ -103,7 +140,7 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
         <div className="flex align-items-center">
             <i className="pi pi-file-pdf text-2xl mr-3 text-primary"></i>
             <div>
-                <h3 className="m-0">Certificate Details</h3>
+                <h3 className="m-0">Production Details</h3> {/* **UPDATED**: Changed from Certificate to Production */}
                 <small className="text-600">{certificate.reference}</small>
             </div>
         </div>
@@ -112,15 +149,25 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
     const dialogFooter = (
         <div className="flex justify-content-between">
             <div className="flex gap-2">
+                {/* **NEW**: Two download options */}
                 <Button
-                    label="Download PDF"
+                    label="Download from API"
                     icon="pi pi-download"
-                    onClick={handleDownload}
-                    loading={loading}
+                    onClick={handleDownloadExternal}
+                    loading={downloadLoading.external}
+                    tooltip="Download directly from external API"
+                />
+                <Button
+                    label="Download from DB"
+                    icon="pi pi-database"
+                    className="p-button-outlined"
+                    onClick={handleDownloadFromDatabase}
+                    loading={downloadLoading.database}
+                    tooltip="Download from database (if available)"
                 />
             </div>
             <div className="flex gap-2">
-                {certificate.status === 'active' && (
+                {!certificate.sent_to_storage && ( // **UPDATED**: Only show actions if not sent to storage
                     <>
                         <Button
                             label="Suspend"
@@ -161,26 +208,29 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                     <TabPanel header="General Information" leftIcon="pi pi-info-circle mr-2">
                         <div className="grid">
                             <div className="col-12 md:col-6">
-                                <Card title="Certificate Information" className="h-full">
+                                <Card title="Production Information" className="h-full"> {/* **UPDATED**: Changed title */}
                                     <div className="field-group">
                                         <div className="field">
                                             <label className="font-semibold text-900">Reference:</label>
                                             <p className="mt-1 mb-3">{certificate.reference}</p>
                                         </div>
                                         <div className="field">
-                                            <label className="font-semibold text-900">Policy Number:</label>
-                                            <p className="mt-1 mb-3">{certificate.policyNumber}</p>
+                                            <label className="font-semibold text-900">Quantity:</label> {/* **NEW** */}
+                                            <p className="mt-1 mb-3">{certificate.quantity}</p>
                                         </div>
                                         <div className="field">
-                                            <label className="font-semibold text-900">Certificate Type:</label>
-                                            <p className="mt-1 mb-3">{certificate.certificateType}</p>
+                                            <label className="font-semibold text-900">Channel:</label> {/* **NEW** */}
+                                            <p className="mt-1 mb-3">
+                                                <Tag value={certificate.channel?.toUpperCase()}
+                                                     severity={certificate.channel === 'web' ? 'info' : 'secondary'} />
+                                            </p>
                                         </div>
                                         <div className="field">
-                                            <label className="font-semibold text-900">Status:</label>
+                                            <label className="font-semibold text-900">Storage Status:</label> {/* **UPDATED** */}
                                             <div className="mt-1">
                                                 <Tag
-                                                    value={certificate.status?.toUpperCase()}
-                                                    severity={getStatusSeverity(certificate.status)}
+                                                    value={getStatusLabel(certificate.sent_to_storage)}
+                                                    severity={getStatusSeverity(certificate.sent_to_storage)}
                                                 />
                                             </div>
                                         </div>
@@ -189,20 +239,24 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                             </div>
 
                             <div className="col-12 md:col-6">
-                                <Card title="Dates & Premium" className="h-full">
+                                <Card title="Creation Details" className="h-full"> {/* **UPDATED**: Changed title */}
                                     <div className="field-group">
                                         <div className="field">
-                                            <label className="font-semibold text-900">Issue Date:</label>
-                                            <p className="mt-1 mb-3">{formatDate(certificate.issueDate)}</p>
+                                            <label className="font-semibold text-900">Created At:</label> {/* **UPDATED** */}
+                                            <p className="mt-1 mb-3">{formatDate(certificate.created_at)}</p>
                                         </div>
                                         <div className="field">
-                                            <label className="font-semibold text-900">Expiry Date:</label>
-                                            <p className="mt-1 mb-3">{formatDate(certificate.expiryDate)}</p>
+                                            <label className="font-semibold text-900">Formatted Date:</label> {/* **NEW** */}
+                                            <p className="mt-1 mb-3">{certificate.formatted_created_at}</p>
                                         </div>
                                         <div className="field">
-                                            <label className="font-semibold text-900">Premium:</label>
-                                            <p className="mt-1 mb-3 text-2xl font-bold text-primary">
-                                                {formatCurrency(certificate.premium)}
+                                            <label className="font-semibold text-900">Download Link:</label> {/* **NEW** */}
+                                            <p className="mt-1 mb-3">
+                                                {certificate.download_link ? (
+                                                    <span className="text-green-500">✓ Available</span>
+                                                ) : (
+                                                    <span className="text-red-500">✗ Not Available</span>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
@@ -211,68 +265,117 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                         </div>
                     </TabPanel>
 
-                    <TabPanel header="Policyholder" leftIcon="pi pi-user mr-2">
-                        <Card title="Policyholder Information">
+                    {/* **NEW**: User Information Tab */}
+                    <TabPanel header="User Information" leftIcon="pi pi-user mr-2">
+                        <Card title="Created By">
                             <div className="grid">
                                 <div className="col-12 md:col-6">
                                     <div className="field">
                                         <label className="font-semibold text-900">Full Name:</label>
-                                        <p className="mt-1 mb-3 text-lg">{certificate.holderName}</p>
+                                        <p className="mt-1 mb-3 text-lg">{certificate.user?.name || 'N/A'}</p>
                                     </div>
                                     <div className="field">
                                         <label className="font-semibold text-900">Email:</label>
-                                        <p className="mt-1 mb-3">{certificate.holderEmail || 'N/A'}</p>
+                                        <p className="mt-1 mb-3">{certificate.user?.email || 'N/A'}</p>
                                     </div>
                                     <div className="field">
                                         <label className="font-semibold text-900">Phone:</label>
-                                        <p className="mt-1 mb-3">{certificate.holderPhone || 'N/A'}</p>
+                                        <p className="mt-1 mb-3">{certificate.user?.telephone || 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="col-12 md:col-6">
                                     <div className="field">
-                                        <label className="font-semibold text-900">Address:</label>
-                                        <p className="mt-1 mb-3">{certificate.holderAddress || 'N/A'}</p>
+                                        <label className="font-semibold text-900">Username:</label>
+                                        <p className="mt-1 mb-3">{certificate.user?.username || 'N/A'}</p>
                                     </div>
                                     <div className="field">
-                                        <label className="font-semibold text-900">ID Number:</label>
-                                        <p className="mt-1 mb-3">{certificate.holderIdNumber || 'N/A'}</p>
+                                        <label className="font-semibold text-900">User Status:</label>
+                                        <p className="mt-1 mb-3">
+                                            <Tag value={certificate.user?.is_disabled ? 'DISABLED' : 'ACTIVE'}
+                                                 severity={certificate.user?.is_disabled ? 'danger' : 'success'} />
+                                        </p>
+                                    </div>
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Account Created:</label>
+                                        <p className="mt-1 mb-3">{certificate.user?.formatted_created_at || 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>
                         </Card>
                     </TabPanel>
 
-                    <TabPanel header="Vehicle" leftIcon="pi pi-car mr-2">
-                        <Card title="Vehicle Information">
+                    {/* **NEW**: Organization Information Tab */}
+                    <TabPanel header="Organization" leftIcon="pi pi-building mr-2">
+                        <Card title="Organization Details">
                             <div className="grid">
                                 <div className="col-12 md:col-6">
                                     <div className="field">
-                                        <label className="font-semibold text-900">Registration Number:</label>
-                                        <p className="mt-1 mb-3 text-lg font-semibold">
-                                            {certificate.vehicleRegistration}
-                                        </p>
+                                        <label className="font-semibold text-900">Organization Name:</label>
+                                        <p className="mt-1 mb-3 text-lg">{certificate.organization?.name || 'N/A'}</p>
                                     </div>
                                     <div className="field">
-                                        <label className="font-semibold text-900">Make:</label>
-                                        <p className="mt-1 mb-3">{certificate.vehicleMake || 'N/A'}</p>
+                                        <label className="font-semibold text-900">Code:</label>
+                                        <p className="mt-1 mb-3">{certificate.organization?.code || 'N/A'}</p>
                                     </div>
                                     <div className="field">
-                                        <label className="font-semibold text-900">Model:</label>
-                                        <p className="mt-1 mb-3">{certificate.vehicleModel || 'N/A'}</p>
+                                        <label className="font-semibold text-900">Email:</label>
+                                        <p className="mt-1 mb-3">{certificate.organization?.email || 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="col-12 md:col-6">
                                     <div className="field">
-                                        <label className="font-semibold text-900">Year:</label>
-                                        <p className="mt-1 mb-3">{certificate.vehicleYear || 'N/A'}</p>
+                                        <label className="font-semibold text-900">Address:</label>
+                                        <p className="mt-1 mb-3">{certificate.organization?.address || 'N/A'}</p>
                                     </div>
                                     <div className="field">
-                                        <label className="font-semibold text-900">Chassis Number:</label>
-                                        <p className="mt-1 mb-3">{certificate.vehicleChassisNumber || 'N/A'}</p>
+                                        <label className="font-semibold text-900">Phone:</label>
+                                        <p className="mt-1 mb-3">{certificate.organization?.telephone || 'N/A'}</p>
                                     </div>
                                     <div className="field">
-                                        <label className="font-semibold text-900">Engine Number:</label>
-                                        <p className="mt-1 mb-3">{certificate.vehicleEngineNumber || 'N/A'}</p>
+                                        <label className="font-semibold text-900">Status:</label>
+                                        <p className="mt-1 mb-3">
+                                            <Tag value={certificate.organization?.is_disabled ? 'DISABLED' : 'ACTIVE'}
+                                                 severity={certificate.organization?.is_disabled ? 'danger' : 'success'} />
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    </TabPanel>
+
+                    {/* **NEW**: Office Information Tab */}
+                    <TabPanel header="Office" leftIcon="pi pi-home mr-2">
+                        <Card title="Office Details">
+                            <div className="grid">
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Office Name:</label>
+                                        <p className="mt-1 mb-3 text-lg">{certificate.office?.name || 'N/A'}</p>
+                                    </div>
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Code:</label>
+                                        <p className="mt-1 mb-3">{certificate.office?.code || 'N/A'}</p>
+                                    </div>
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Email:</label>
+                                        <p className="mt-1 mb-3">{certificate.office?.email || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Address:</label>
+                                        <p className="mt-1 mb-3">{certificate.office?.address || 'N/A'}</p>
+                                    </div>
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Phone:</label>
+                                        <p className="mt-1 mb-3">{certificate.office?.telephone || 'N/A'}</p>
+                                    </div>
+                                    <div className="field">
+                                        <label className="font-semibold text-900">Master Office:</label>
+                                        <p className="mt-1 mb-3">
+                                            <Tag value={certificate.office?.is_master_office ? 'YES' : 'NO'}
+                                                 severity={certificate.office?.is_master_office ? 'info' : 'secondary'} />
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -280,7 +383,7 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                     </TabPanel>
 
                     <TabPanel header="Actions" leftIcon="pi pi-cog mr-2">
-                        <Card title="Certificate Actions">
+                        <Card title="Production Actions"> {/* **UPDATED**: Changed title */}
                             <div className="field">
                                 <label htmlFor="actionReason" className="block text-900 font-medium mb-2">
                                     Reason for Action (Optional)
@@ -300,23 +403,37 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                             <div className="flex flex-column gap-3">
                                 <div className="flex align-items-center justify-content-between p-3 border-round surface-100">
                                     <div>
-                                        <h4 className="m-0 text-900">Download Certificate</h4>
-                                        <p className="mt-1 mb-0 text-600">Download the PDF version of this certificate</p>
+                                        <h4 className="m-0 text-900">Download from External API</h4> {/* **NEW** */}
+                                        <p className="mt-1 mb-0 text-600">Download directly from the external production API</p>
                                     </div>
                                     <Button
                                         label="Download"
                                         icon="pi pi-download"
-                                        onClick={handleDownload}
-                                        loading={loading}
+                                        onClick={handleDownloadExternal}
+                                        loading={downloadLoading.external}
                                     />
                                 </div>
 
-                                {certificate.status === 'active' && (
+                                <div className="flex align-items-center justify-content-between p-3 border-round surface-100">
+                                    <div>
+                                        <h4 className="m-0 text-900">Download from Database</h4> {/* **NEW** */}
+                                        <p className="mt-1 mb-0 text-600">Download using stored database link (if available)</p>
+                                    </div>
+                                    <Button
+                                        label="Download"
+                                        icon="pi pi-database"
+                                        className="p-button-outlined"
+                                        onClick={handleDownloadFromDatabase}
+                                        loading={downloadLoading.database}
+                                    />
+                                </div>
+
+                                {!certificate.sent_to_storage && ( // **UPDATED**: Only show actions if not sent to storage
                                     <>
                                         <div className="flex align-items-center justify-content-between p-3 border-round surface-100">
                                             <div>
-                                                <h4 className="m-0 text-900">Suspend Certificate</h4>
-                                                <p className="mt-1 mb-0 text-600">Temporarily suspend this certificate</p>
+                                                <h4 className="m-0 text-900">Suspend Production</h4> {/* **UPDATED** */}
+                                                <p className="mt-1 mb-0 text-600">Temporarily suspend this production</p>
                                             </div>
                                             <Button
                                                 label="Suspend"
@@ -328,8 +445,8 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
 
                                         <div className="flex align-items-center justify-content-between p-3 border-round surface-100">
                                             <div>
-                                                <h4 className="m-0 text-900">Cancel Certificate</h4>
-                                                <p className="mt-1 mb-0 text-600">Permanently cancel this certificate</p>
+                                                <h4 className="m-0 text-900">Cancel Production</h4> {/* **UPDATED** */}
+                                                <p className="mt-1 mb-0 text-600">Permanently cancel this production</p>
                                             </div>
                                             <Button
                                                 label="Cancel"

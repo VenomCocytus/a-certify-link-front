@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menubar } from 'primereact/menubar';
 import { Sidebar } from 'primereact/sidebar';
 import { Button } from 'primereact/button';
@@ -6,16 +7,20 @@ import { Avatar } from 'primereact/avatar';
 import { Menu } from 'primereact/menu';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import './Layout.css';
 
 const Layout = ({ children }) => {
     const [sidebarVisible, setSidebarVisible] = useState(false);
     const { user, logout } = useAuth();
     const { showSuccess } = useToast();
+    const { theme, toggleTheme } = useTheme();
+    const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         showSuccess('Logged out successfully');
+        navigate('/login');
     };
 
     // User menu items
@@ -23,16 +28,12 @@ const Layout = ({ children }) => {
         {
             label: 'Profile',
             icon: 'pi pi-user',
-            command: () => {
-                // Handle profile action
-            }
+            command: () => navigate('/profile')
         },
         {
             label: 'Settings',
             icon: 'pi pi-cog',
-            command: () => {
-                // Handle settings action
-            }
+            command: () => navigate('/settings')
         },
         {
             separator: true
@@ -49,9 +50,12 @@ const Layout = ({ children }) => {
         {
             label: 'Dashboard',
             icon: 'pi pi-home',
-            command: () => {
-                // Navigate to dashboard
-            }
+            command: () => navigate('/dashboard')
+        },
+        {
+            label: 'Create Edition',
+            icon: 'pi pi-plus',
+            command: () => navigate('/create-edition')
         },
         {
             label: 'Certificates',
@@ -60,16 +64,12 @@ const Layout = ({ children }) => {
                 {
                     label: 'View All',
                     icon: 'pi pi-list',
-                    command: () => {
-                        // Navigate to certificates list
-                    }
+                    command: () => navigate('/dashboard')
                 },
                 {
                     label: 'Statistics',
                     icon: 'pi pi-chart-bar',
-                    command: () => {
-                        // Navigate to statistics
-                    }
+                    command: () => navigate('/dashboard')
                 }
             ]
         },
@@ -92,26 +92,6 @@ const Layout = ({ children }) => {
                     }
                 }
             ]
-        },
-        {
-            label: 'Productions',
-            icon: 'pi pi-cog',
-            items: [
-                {
-                    label: 'View Productions',
-                    icon: 'pi pi-list',
-                    command: () => {
-                        // Navigate to productions
-                    }
-                },
-                {
-                    label: 'Create Production',
-                    icon: 'pi pi-plus',
-                    command: () => {
-                        // Navigate to create production
-                    }
-                }
-            ]
         }
     ];
 
@@ -120,12 +100,26 @@ const Layout = ({ children }) => {
         {
             label: 'Dashboard',
             icon: 'pi pi-home',
-            command: () => setSidebarVisible(false)
+            command: () => {
+                navigate('/dashboard');
+                setSidebarVisible(false);
+            }
+        },
+        {
+            label: 'Create Edition',
+            icon: 'pi pi-plus',
+            command: () => {
+                navigate('/create-edition');
+                setSidebarVisible(false);
+            }
         },
         {
             label: 'Certificates',
             icon: 'pi pi-file-pdf',
-            command: () => setSidebarVisible(false)
+            command: () => {
+                navigate('/dashboard');
+                setSidebarVisible(false);
+            }
         },
         {
             label: 'Orders',
@@ -133,19 +127,20 @@ const Layout = ({ children }) => {
             command: () => setSidebarVisible(false)
         },
         {
-            label: 'Productions',
+            label: 'Profile',
+            icon: 'pi pi-user',
+            command: () => {
+                navigate('/profile');
+                setSidebarVisible(false);
+            }
+        },
+        {
+            label: 'Settings',
             icon: 'pi pi-cog',
-            command: () => setSidebarVisible(false)
-        },
-        {
-            label: 'Organizations',
-            icon: 'pi pi-building',
-            command: () => setSidebarVisible(false)
-        },
-        {
-            label: 'Users',
-            icon: 'pi pi-users',
-            command: () => setSidebarVisible(false)
+            command: () => {
+                navigate('/settings');
+                setSidebarVisible(false);
+            }
         }
     ];
 
@@ -156,7 +151,7 @@ const Layout = ({ children }) => {
                 className="p-button-text p-button-rounded mr-2 lg:hidden"
                 onClick={() => setSidebarVisible(true)}
             />
-            <div className="flex align-items-center">
+            <div className="flex align-items-center cursor-pointer" onClick={() => navigate('/dashboard')}>
                 <i className="pi pi-shield text-2xl text-primary mr-2"></i>
                 <span className="text-xl font-bold text-900">eAttestation</span>
             </div>
@@ -165,6 +160,12 @@ const Layout = ({ children }) => {
 
     const end = (
         <div className="flex align-items-center gap-2">
+            <Button
+                icon={theme === 'dark' ? 'pi pi-sun' : 'pi pi-moon'}
+                className="p-button-text p-button-rounded"
+                onClick={toggleTheme}
+                tooltip={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            />
             <Button
                 icon="pi pi-bell"
                 className="p-button-text p-button-rounded"
@@ -182,7 +183,7 @@ const Layout = ({ children }) => {
                 id="user-menu"
             />
             <div
-                className="flex align-items-center cursor-pointer"
+                className="flex align-items-center cursor-pointer user-menu-trigger"
                 onClick={(event) => window.userMenu?.toggle(event)}
             >
                 <Avatar
@@ -191,12 +192,14 @@ const Layout = ({ children }) => {
                     className="mr-2"
                     shape="circle"
                 />
-                <div className="flex flex-column align-items-start">
+                <div className="flex flex-column align-items-start user-info">
           <span className="font-medium text-900">
-            {user?.name || user?.email || 'User'}
+            {user?.firstName && user?.lastName
+                ? `${user.fullName}`
+                : user?.email || 'User'}
           </span>
                     <span className="text-sm text-600">
-            {user?.role || 'Member'}
+            {user?.role?.name || 'Member'}
           </span>
                 </div>
                 <i className="pi pi-chevron-down ml-2 text-600"></i>

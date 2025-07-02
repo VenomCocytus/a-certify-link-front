@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL from the API documentation
-const BASE_URL = 'https://ppcoreeatci.asacitech.com/api/v1';
+// Base URL - update this to match your backend URL
+const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api/v1';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -9,12 +9,13 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true, // Important for handling HTTP-only cookies
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add an auth token
 apiClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('accessToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -25,45 +26,94 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and token refresh
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Token expired or invalid
-            localStorage.removeItem('authToken');
-            window.location.href = '/login';
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // Try to refresh the token
+                const response = await apiClient.post('/auth/refresh-token');
+                const { accessToken } = response.data;
+
+                localStorage.setItem('accessToken', accessToken);
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+                return apiClient(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed, redirect to the login page
+                localStorage.removeItem('accessToken');
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
+            }
         }
+
         return Promise.reject(error);
     }
 );
 
 export const apiService = {
     // Authentication endpoints
-    login: (email, password, clientName) =>
-        apiClient.post('/auth/tokens', { email, password, client_name: clientName }),
+    login: (loginData) =>
+        apiClient.post('/auth/login', loginData),
+
+    register: (userData) =>
+        apiClient.post('/auth/register', userData),
 
     getCurrentUser: () =>
-        apiClient.get('/auth/user'),
+        apiClient.get('/auth/profile'),
 
-    logout: () =>
-        apiClient.delete('/auth/tokens'),
+    updateProfile: (profileData) =>
+        apiClient.put('/auth/profile', profileData),
 
-    // Certificate endpoints
+    changePassword: (passwordData) =>
+        apiClient.put('/auth/change-password', passwordData),
+
+    refreshToken: () =>
+        apiClient.post('/auth/refresh-token'),
+
+    logout: (logoutData) =>
+        apiClient.post('/auth/logout', logoutData),
+
+    forgotPassword: (emailData) =>
+        apiClient.post('/auth/forgot-password', emailData),
+
+    resetPassword: (resetData) =>
+        apiClient.post('/auth/reset-password', resetData),
+
+    // ORASS/CertifyLink endpoints
+    searchOrassPolicies: (searchParams) =>
+        apiClient.get('/certify-link/policies/search', { params: searchParams }),
+
+    createEditionRequest: (editionData) =>
+        apiClient.post('/certify-link/certificates/production', editionData),
+
+    getCertificateColors: () =>
+        apiClient.get('/certify-link/certificate-colors'),
+
     getCertificates: (params = {}) =>
-        apiClient.get('/certificates', { params }),
+        apiClient.get('/certify-link/attestations', { params }),
 
-    getCertificate: (reference) =>
+    // **NEW**: Get certificate details by reference
+    getCertificateDetails: (reference) =>
         apiClient.get(`/certificates/${reference}`),
+
+    // **NEW**: Get related certificate details
+    getRelatedCertificateDetails: (reference) =>
+        apiClient.get(`/certificates/related/${reference}`),
 
     getCertificateTypes: () =>
         apiClient.get('/certificate-types'),
 
-    getCertificateVariants: () =>
-        apiClient.get('/certificate-variants'),
+    downloadCertificateLinkFromDb: (reference) =>
+        apiClient.post(`/certify-link/certificates/${reference}/download-link`, { responseType: 'blob' }),
 
-    downloadCertificate: (reference) =>
-        apiClient.get(`/certificates/${reference}/download`, { responseType: 'blob' }),
+    downloadCertificateExternal: (reference) =>
+        apiClient.get(`/certify-link/certificates/${reference}/download`, { responseType: 'blob' }),
 
     cancelCertificate: (reference, reason) =>
         apiClient.post(`/certificates/${reference}/cancel`, { reason }),
@@ -79,63 +129,5 @@ export const apiService = {
         apiClient.get('/certificates/statistic/available'),
 
     getUsedStats: () =>
-        apiClient.get('/certificates/statistic/used'),
-
-    // Orders endpoints
-    getOrders: (params = {}) =>
-        apiClient.get('/orders', { params }),
-
-    getOrder: (reference) =>
-        apiClient.get(`/orders/${reference}`),
-
-    createOrder: (orderData) =>
-        apiClient.post('/orders', orderData),
-
-    updateOrder: (reference, orderData) =>
-        apiClient.put(`/orders/${reference}`, orderData),
-
-    approveOrder: (reference) =>
-        apiClient.post(`/orders/${reference}/approve`),
-
-    rejectOrder: (reference, reason) =>
-        apiClient.post(`/orders/${reference}/reject`, { reason }),
-
-    cancelOrder: (reference, reason) =>
-        apiClient.post(`/orders/${reference}/cancel`, { reason }),
-
-    // Organizations endpoints
-    getOrganizations: () =>
-        apiClient.get('/organizations'),
-
-    getOrganization: (id) =>
-        apiClient.get(`/organizations/${id}`),
-
-    // Productions/Editions endpoints
-    getProductions: (params = {}) =>
-        apiClient.get('/productions', { params }),
-
-    createProduction: (productionData) =>
-        apiClient.post('/productions', productionData),
-
-    downloadProduction: (reference) =>
-        apiClient.get(`/productions/${reference}/download`, { responseType: 'blob' }),
-
-    // Dashboard statistics
-    getDashboardUsers: () =>
-        apiClient.get('/dashboard/users'),
-
-    getDashboardOrders: () =>
-        apiClient.get('/dashboard/orders'),
-
-    getDashboardCertificates: () =>
-        apiClient.get('/dashboard/certificates'),
-
-    getDashboardOffices: () =>
-        apiClient.get('/dashboard/offices'),
-
-    getDashboardOrganizations: () =>
-        apiClient.get('/dashboard/organizations'),
-
-    getDashboardTransactions: () =>
-        apiClient.get('/dashboard/transactions'),
+        apiClient.get('/certificates/statistic/used')
 };

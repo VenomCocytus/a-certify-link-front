@@ -27,7 +27,8 @@ const Dashboard = () => {
         status: '',
         dateFrom: null,
         dateTo: null,
-        certificateType: ''
+        certificateType: '',
+        channel: '' // **NEW**: Added channel filter
     });
 
     const { showError, showSuccess } = useToast();
@@ -45,14 +46,15 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            // Fetch certificates and statistics in parallel
+            // **UPDATED**: Fetch productions instead of certificates and statistics in parallel
             const [certsResponse, statsResponse] = await Promise.allSettled([
-                apiService.getCertificates(),
+                apiService.getCertificates(), // This now calls /productions endpoint
                 fetchStatistics()
             ]);
 
             if (certsResponse.status === 'fulfilled') {
                 const certsData = certsResponse.value.data;
+                // **UPDATED**: Handle the new API response structure
                 setCertificates(Array.isArray(certsData) ? certsData : certsData.data || []);
             } else {
                 // Use mock data if API fails
@@ -98,42 +100,35 @@ const Dashboard = () => {
         used: { total: 789, thisMonth: 123 }
     });
 
+    // **UPDATED**: Generate mock data based on new API structure
     const generateMockCertificates = () => [
         {
-            id: '1',
-            reference: 'CERT-2025-001',
-            policyNumber: 'POL-456789',
-            holderName: 'Jean Dupont',
-            vehicleRegistration: 'CM-123-ABC',
-            status: 'active',
-            issueDate: '2025-01-15',
-            expiryDate: '2025-12-15',
-            certificateType: 'CIMA',
-            premium: 125000
-        },
-        {
-            id: '2',
-            reference: 'CERT-2025-002',
-            policyNumber: 'POL-456790',
-            holderName: 'Marie Kouam',
-            vehicleRegistration: 'CM-124-DEF',
-            status: 'pending',
-            issueDate: '2025-01-16',
-            expiryDate: '2025-12-16',
-            certificateType: 'POOLTPV',
-            premium: 89000
-        },
-        {
-            id: '3',
-            reference: 'CERT-2025-003',
-            policyNumber: 'POL-456791',
-            holderName: 'Paul Mbarga',
-            vehicleRegistration: 'CM-125-GHI',
-            status: 'suspended',
-            issueDate: '2025-01-14',
-            expiryDate: '2025-12-14',
-            certificateType: 'MATCA',
-            premium: 156000
+            id: 'pro_jD6z3EdvdG7yV',
+            reference: 'PROD-072025-F70BF81A1E',
+            sent_to_storage: false,
+            channel: 'web',
+            download_link: 'https://example.com/download/1',
+            created_at: '2025-07-02T13:16:01.000000Z',
+            quantity: 1,
+            formatted_created_at: '02/07/2025 13:16',
+            user: {
+                id: 'user_123',
+                email: 'admin@example.com',
+                name: 'Admin User',
+                telephone: '237640154'
+            },
+            organization: {
+                id: 'org_123',
+                code: 'TEST_ORG',
+                name: 'Test Organization',
+                email: 'test@org.com'
+            },
+            office: {
+                id: 'off_123',
+                code: 'TEST_OFFICE_001',
+                name: 'Main Office',
+                address: 'Test Address'
+            }
         }
     ];
 
@@ -166,33 +161,40 @@ const Dashboard = () => {
     const applyFilters = () => {
         let filtered = certificates;
 
-        // Apply search filter
+        // **UPDATED**: Apply search filter based on new data structure
         if (filters.search) {
             filtered = filtered.filter(cert =>
                 cert.reference?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.policyNumber?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.holderName?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.vehicleRegistration?.toLowerCase().includes(filters.search.toLowerCase())
+                cert.user?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+                cert.user?.email?.toLowerCase().includes(filters.search.toLowerCase()) ||
+                cert.organization?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+                cert.organization?.code?.toLowerCase().includes(filters.search.toLowerCase()) ||
+                cert.office?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+                cert.office?.code?.toLowerCase().includes(filters.search.toLowerCase())
             );
         }
 
-        // Apply status filter
+        // **UPDATED**: Apply status filter based on storage status
         if (filters.status) {
-            filtered = filtered.filter(cert => cert.status === filters.status);
+            if (filters.status === 'sent_to_storage') {
+                filtered = filtered.filter(cert => cert.sent_to_storage === true);
+            } else if (filters.status === 'not_sent_to_storage') {
+                filtered = filtered.filter(cert => cert.sent_to_storage === false);
+            }
         }
 
-        // Apply certificate type filter
-        if (filters.certificateType) {
-            filtered = filtered.filter(cert => cert.certificateType === filters.certificateType);
+        // **NEW**: Apply channel filter
+        if (filters.channel) {
+            filtered = filtered.filter(cert => cert.channel === filters.channel);
         }
 
         // Apply date filters
         if (filters.dateFrom) {
-            filtered = filtered.filter(cert => new Date(cert.issueDate) >= new Date(filters.dateFrom));
+            filtered = filtered.filter(cert => new Date(cert.created_at) >= new Date(filters.dateFrom));
         }
 
         if (filters.dateTo) {
-            filtered = filtered.filter(cert => new Date(cert.issueDate) <= new Date(filters.dateTo));
+            filtered = filtered.filter(cert => new Date(cert.created_at) <= new Date(filters.dateTo));
         }
 
         setFilteredCertificates(filtered);
@@ -207,9 +209,10 @@ const Dashboard = () => {
         setShowDetails(true);
     };
 
+    // **UPDATED**: Download certificate with new API structure
     const handleDownloadCertificate = async (certificate) => {
         try {
-            const response = await apiService.downloadCertificate(certificate.reference);
+            const response = await apiService.downloadCertificateExternal(certificate.reference);
             // Create blob and download
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
@@ -224,18 +227,27 @@ const Dashboard = () => {
         }
     };
 
+    // **UPDATED**: Status template based on storage status
     const statusBodyTemplate = (rowData) => {
-        const severity = {
-            active: 'success',
-            pending: 'warning',
-            suspended: 'danger',
-            cancelled: 'secondary'
-        };
+        const severity = rowData.sent_to_storage ? 'success' : 'warning';
+        const value = rowData.sent_to_storage ? 'SENT TO STORAGE' : 'NOT SENT TO STORAGE';
 
         return (
             <Tag
-                value={rowData.status?.toUpperCase()}
-                severity={severity[rowData.status] || 'info'}
+                value={value}
+                severity={severity}
+            />
+        );
+    };
+
+    // **NEW**: Channel template
+    const channelBodyTemplate = (rowData) => {
+        const severity = rowData.channel === 'web' ? 'info' : 'secondary';
+
+        return (
+            <Tag
+                value={rowData.channel?.toUpperCase()}
+                severity={severity}
             />
         );
     };
@@ -259,19 +271,39 @@ const Dashboard = () => {
         );
     };
 
-    const formatCurrency = (value) => {
-        return new Intl.NumberFormat('fr-CM', {
-            style: 'currency',
-            currency: 'XAF'
-        }).format(value);
+    // **UPDATED**: Date template using created_at
+    const dateBodyTemplate = (rowData) => {
+        return rowData.formatted_created_at || new Date(rowData.created_at).toLocaleDateString('fr-CM');
     };
 
-    const premiumBodyTemplate = (rowData) => {
-        return formatCurrency(rowData.premium);
+    // **NEW**: User template
+    const userBodyTemplate = (rowData) => {
+        return (
+            <div>
+                <div className="font-medium">{rowData.user?.name || 'N/A'}</div>
+                <small className="text-500">{rowData.user?.email || ''}</small>
+            </div>
+        );
     };
 
-    const dateBodyTemplate = (rowData, field) => {
-        return new Date(rowData[field.field]).toLocaleDateString('fr-CM');
+    // **NEW**: Organization template
+    const organizationBodyTemplate = (rowData) => {
+        return (
+            <div>
+                <div className="font-medium">{rowData.organization?.name || 'N/A'}</div>
+                <small className="text-500">{rowData.organization?.code || ''}</small>
+            </div>
+        );
+    };
+
+    // **NEW**: Office template
+    const officeBodyTemplate = (rowData) => {
+        return (
+            <div>
+                <div className="font-medium">{rowData.office?.name || 'N/A'}</div>
+                <small className="text-500">{rowData.office?.code || ''}</small>
+            </div>
+        );
     };
 
     if (loading) {
@@ -299,7 +331,7 @@ const Dashboard = () => {
             {/* Charts Section */}
             <div className="grid mt-4">
                 <div className="col-12 lg:col-6">
-                    <Card title="Certificate Distribution" className="h-full">
+                    <Card title="Production Distribution" className="h-full"> {/* **UPDATED**: Changed title */}
                         {chartData ? (
                             <Chart type="pie" data={chartData} className="w-full md:w-30rem" />
                         ) : (
@@ -313,14 +345,14 @@ const Dashboard = () => {
                             <div className="flex align-items-center">
                                 <i className="pi pi-file-pdf text-blue-500 mr-3"></i>
                                 <div>
-                                    <p className="m-0 font-medium">New certificate issued</p>
+                                    <p className="m-0 font-medium">New production created</p> {/* **UPDATED** */}
                                     <small className="text-500">2 hours ago</small>
                                 </div>
                             </div>
                             <div className="flex align-items-center">
                                 <i className="pi pi-check-circle text-green-500 mr-3"></i>
                                 <div>
-                                    <p className="m-0 font-medium">Order approved</p>
+                                    <p className="m-0 font-medium">Production sent to storage</p> {/* **UPDATED** */}
                                     <small className="text-500">4 hours ago</small>
                                 </div>
                             </div>
@@ -341,33 +373,28 @@ const Dashboard = () => {
                 <CertificateFilter onFilterChange={handleFilterChange} />
             </div>
 
-            {/* Certificates Table */}
+            {/* **UPDATED**: Productions Table */}
             <div className="mt-4">
-                <Card title="Certificates" className="certificate-table-card">
+                <Card title="Productions" className="certificate-table-card"> {/* **UPDATED**: Changed title */}
                     <DataTable
                         value={filteredCertificates}
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="p-datatable-gridlines"
-                        emptyMessage="No certificates found."
+                        emptyMessage="No productions found." // **UPDATED**
                     >
                         <Column field="reference" header="Reference" sortable />
-                        <Column field="policyNumber" header="Policy Number" sortable />
-                        <Column field="holderName" header="Holder Name" sortable />
-                        <Column field="vehicleRegistration" header="Vehicle" sortable />
-                        <Column field="certificateType" header="Type" sortable />
+                        <Column field="quantity" header="Quantity" sortable /> {/* **NEW** */}
+                        <Column field="channel" header="Channel" body={channelBodyTemplate} sortable /> {/* **NEW** */}
+                        <Column header="User" body={userBodyTemplate} sortable /> {/* **NEW** */}
+                        <Column header="Organization" body={organizationBodyTemplate} sortable /> {/* **NEW** */}
+                        <Column header="Office" body={officeBodyTemplate} sortable /> {/* **NEW** */}
+                        <Column field="sent_to_storage" header="Storage Status" body={statusBodyTemplate} sortable /> {/* **UPDATED** */}
                         <Column
-                            field="premium"
-                            header="Premium"
-                            body={premiumBodyTemplate}
-                            sortable
-                        />
-                        <Column field="status" header="Status" body={statusBodyTemplate} sortable />
-                        <Column
-                            field="issueDate"
-                            header="Issue Date"
-                            body={(rowData) => dateBodyTemplate(rowData, { field: 'issueDate' })}
+                            field="created_at"
+                            header="Created At" // **UPDATED**
+                            body={dateBodyTemplate}
                             sortable
                         />
                         <Column body={actionBodyTemplate} header="Actions" style={{width: '120px'}} />

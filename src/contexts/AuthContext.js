@@ -18,48 +18,111 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         // Check if user is already authenticated on app load
-        const token = localStorage.getItem('authToken');
-        if (token) {
-            setIsAuthenticated(true);
-            // You could also fetch user data here if needed
-            fetchUserData();
-        }
-        setLoading(false);
+        checkAuthStatus();
     }, []);
 
-    const fetchUserData = async () => {
-        try {
-            const userData = await authService.getCurrentUser();
-            setUser(userData);
-        } catch (error) {
-            console.error('Error fetching user data:', error);
-            // If token is invalid, log out
-            logout();
+    const checkAuthStatus = async () => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            try {
+                const userData = await authService.getCurrentUser();
+                setUser(userData);
+                setIsAuthenticated(true);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                // If token is invalid, log out
+                await logout();
+            }
         }
+        setLoading(false);
     };
 
-    const login = async (email, password) => {
+    const login = async (email, password, rememberMe = false, twoFactorCode = null) => {
         try {
-            const response = await authService.login(email, password);
-            if (response.token) {
-                localStorage.setItem('authToken', response.token);
+            const response = await authService.login(email, password, rememberMe, twoFactorCode);
+            if (response.success) {
+                localStorage.setItem('accessToken', response.accessToken);
                 setIsAuthenticated(true);
-                setUser(response.user || { email });
+                setUser(response.user);
                 return { success: true };
             }
             return { success: false, message: 'Invalid credentials' };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || 'Login failed'
+                message: error.message || 'Login failed'
             };
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('authToken');
-        setIsAuthenticated(false);
-        setUser(null);
+    const register = async (userData) => {
+        try {
+            const response = await authService.register(userData);
+            if (response.success) {
+                localStorage.setItem('accessToken', response.accessToken);
+                setIsAuthenticated(true);
+                setUser(response.user);
+                return { success: true };
+            }
+            return { success: false, message: 'Registration failed' };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Registration failed'
+            };
+        }
+    };
+
+    const updateProfile = async (profileData) => {
+        try {
+            const updatedUser = await authService.updateProfile(profileData);
+            setUser(updatedUser);
+            return { success: true };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Profile update failed'
+            };
+        }
+    };
+
+    const changePassword = async (passwordData) => {
+        try {
+            const response = await authService.changePassword(passwordData);
+            return response;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Password change failed'
+            };
+        }
+    };
+
+    const logout = async (logoutAll = false) => {
+        try {
+            await authService.logout(logoutAll);
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            localStorage.removeItem('accessToken');
+            setIsAuthenticated(false);
+            setUser(null);
+        }
+    };
+
+    const refreshToken = async () => {
+        try {
+            const response = await authService.refreshToken();
+            if (response.success) {
+                localStorage.setItem('accessToken', response.accessToken);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Token refresh failed:', error);
+            await logout();
+            return false;
+        }
     };
 
     const value = {
@@ -67,7 +130,11 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
-        logout
+        register,
+        logout,
+        updateProfile,
+        changePassword,
+        refreshToken
     };
 
     return (

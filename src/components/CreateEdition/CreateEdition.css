@@ -1,0 +1,132 @@
+.create-edition {
+    padding: 0;
+}
+
+.create-edition-header {
+    text-align: center;
+}
+
+.create-edition-steps .p-steps {
+    background: transparent;
+}
+
+.create-edition-steps .p-steps .p-steps-item.p-highlight .p-steps-number {
+    background: #007ad9;
+    color: #ffffff;
+}
+
+.create-edition-steps .p-steps .p-steps-item.p-highlight .p-steps-title {
+    color: #007ad9;
+    font-weight: 600;
+}
+
+.create-edition-card {
+    margin-bottom: 1rem;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.create-edition-card .p-card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+.create-edition-card .p-card-content {
+    padding: 1.5rem;
+}
+
+.create-edition-card .p-card-title {
+    color: #495057;
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+.policy-info .field {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.policy-info .field:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.review-section .field {
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.review-section .field:last-child {
+    margin-bottom: 0;
+}
+
+.create-edition-content .p-steps {
+    border: none;
+    padding: 1rem 0;
+}
+
+.create-edition-content .p-steps .p-steps-item {
+    flex: 1;
+}
+
+/* Theme support */
+.theme-dark .create-edition-card {
+    background: #1e1e1e;
+    border-color: #2a2a2a;
+}
+
+.theme-dark .create-edition-card .p-card-header {
+    background: #2a2a2a;
+    border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .policy-info .field {
+    border-bottom-color: #2a2a2a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .create-edition-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .create-edition-card .p-card-content {
+        padding: 1rem;
+    }
+
+    .create-edition-card .p-card-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .create-edition-steps .p-steps .p-steps-item .p-steps-title {
+        font-size: 0.875rem;
+    }
+
+    .review-section .field {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .review-section .field .ml-2 {
+        margin-left: 0;
+        margin-top: 0.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .create-edition-card .p-card-title {
+        font-size: 1rem;
+    }
+
+    .policy-info .field label {
+        font-size: 0.875rem;
+    }
+
+    .create-edition-steps .p-steps .p-steps-item .p-steps-title {
+        display: none;
+    }
+}
