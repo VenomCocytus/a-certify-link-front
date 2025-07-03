@@ -4,11 +4,7 @@ import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { Steps } from 'primereact/steps';
 import { Dropdown } from 'primereact/dropdown';
-import { Calendar } from 'primereact/calendar';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
-import { ProgressSpinner } from 'primereact/progressspinner';
 import { Divider } from 'primereact/divider';
 import { Tag } from 'primereact/tag';
 import { apiService } from '../../services/apiService';
@@ -21,7 +17,7 @@ const CreateEdition = () => {
     const [searchLoading, setSearchLoading] = useState(false);
     const [policyData, setPolicyData] = useState(null);
     const [certificateColors, setCertificateColors] = useState([]);
-    const { showSuccess, showError, showInfo } = useToast();
+    const { showSuccess, showError } = useToast();
 
     // Step 1: Search Policy
     const [searchForm, setSearchForm] = useState({

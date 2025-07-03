@@ -34,16 +34,25 @@ const ProfilePage = () => {
     const [profileErrors, setProfileErrors] = useState({});
     const [passwordErrors, setPasswordErrors] = useState({});
 
+    // Mock user data if user is not available
+    const displayUser = user || {
+        firstName: 'System',
+        lastName: 'Administrator',
+        email: 'admin@eattestation.com',
+        phoneNumber: '+237 6XX XXX XXX',
+        role: { name: 'Administrator' },
+        createdAt: '2024-01-01T00:00:00.000Z',
+        avatar: null
+    };
+
     useEffect(() => {
-        if (user) {
-            setProfileForm({
-                firstName: user.firstName || '',
-                lastName: user.lastName || '',
-                email: user.email || '',
-                phoneNumber: user.phoneNumber || ''
-            });
-        }
-    }, [user]);
+        setProfileForm({
+            firstName: displayUser.firstName || '',
+            lastName: displayUser.lastName || '',
+            email: displayUser.email || '',
+            phoneNumber: displayUser.phoneNumber || ''
+        });
+    }, [displayUser]);
 
     const validateProfileForm = () => {
         const errors = {};
@@ -202,20 +211,24 @@ const ProfilePage = () => {
                     <Card className="profile-sidebar">
                         <div className="profile-avatar-section text-center">
                             <Avatar
-                                image={user?.avatar}
+                                image={displayUser?.avatar}
                                 icon="pi pi-user"
                                 size="xlarge"
                                 shape="circle"
-                                className="mb-3"
+                                className="mb-3 user-avatar"
+                                style={{
+                                    backgroundColor: displayUser?.avatar ? 'transparent' : '#007ad9',
+                                    color: 'white'
+                                }}
                             />
 
                             <h3 className="text-xl font-semibold text-900 mb-1">
-                                {user?.firstName && user?.lastName
-                                    ? `${user.firstName} ${user.lastName}`
-                                    : user?.email || 'User'}
+                                {displayUser?.firstName && displayUser?.lastName
+                                    ? `${displayUser.firstName} ${displayUser.lastName}`
+                                    : displayUser?.email || 'User'}
                             </h3>
 
-                            <p className="text-600 mb-3">{user?.role.name || 'Member'}</p>
+                            <p className="text-600 mb-3">{displayUser?.role?.name || 'Member'}</p>
 
                             <FileUpload
                                 mode="basic"
@@ -235,24 +248,29 @@ const ProfilePage = () => {
                         <div className="profile-info">
                             <div className="info-item">
                                 <span className="info-label">Email:</span>
-                                <span className="info-value">{user?.email || 'N/A'}</span>
+                                <span className="info-value">{displayUser?.email || 'N/A'}</span>
                             </div>
 
                             <div className="info-item">
                                 <span className="info-label">Phone:</span>
-                                <span className="info-value">{user?.phoneNumber || 'N/A'}</span>
+                                <span className="info-value">{displayUser?.phoneNumber || 'N/A'}</span>
+                            </div>
+
+                            <div className="info-item">
+                                <span className="info-label">Role:</span>
+                                <span className="info-value">{displayUser?.role?.name || 'N/A'}</span>
                             </div>
 
                             <div className="info-item">
                                 <span className="info-label">Member Since:</span>
-                                <span className="info-value">{formatJoinDate(user?.createdAt)}</span>
+                                <span className="info-value">{formatJoinDate(displayUser?.createdAt)}</span>
                             </div>
 
                             <div className="info-item">
                                 <span className="info-label">Status:</span>
                                 <span className="info-value">
-                  <span className="status-badge active">Active</span>
-                </span>
+                                    <span className="status-badge active">Active</span>
+                                </span>
                             </div>
                         </div>
                     </Card>

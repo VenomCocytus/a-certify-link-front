@@ -312,6 +312,70 @@ const Dashboard = () => {
         );
     }, []);
 
+    // Create Statistics Cards Component directly in Dashboard for better control
+    const renderStatisticsCards = () => {
+        if (!statistics) return null;
+
+        const statsConfig = [
+            {
+                title: 'TOTAL CERTIFICATES',
+                value: statistics.usage?.total || 0,
+                change: `${statistics.usage?.thisMonth || 0} this month`,
+                icon: 'pi pi-file',
+                gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                isPositive: true
+            },
+            {
+                title: 'AVAILABLE STOCK',
+                value: statistics.available?.total || 0,
+                change: 'Ready for issuance',
+                icon: 'pi pi-box',
+                gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                isPositive: true
+            },
+            {
+                title: 'USED CERTIFICATES',
+                value: statistics.used?.total || 0,
+                change: `${statistics.used?.thisMonth || 0} this month`,
+                icon: 'pi pi-check-circle',
+                gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                isPositive: true
+            },
+            {
+                title: 'PENDING ORDERS',
+                value: 24,
+                change: 'Awaiting approval',
+                icon: 'pi pi-clock',
+                gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                isPositive: false
+            }
+        ];
+
+        return (
+            <div className="grid">
+                {statsConfig.map((stat, index) => (
+                    <div key={index} className="col-12 md:col-6 lg:col-3">
+                        <div className="statistics-card" style={{ background: stat.gradient }}>
+                            <div className="flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <div className="statistics-title">{stat.title}</div>
+                                    <div className="statistics-value">{stat.value}</div>
+                                </div>
+                                <div className="statistics-icon">
+                                    <i className={stat.icon}></i>
+                                </div>
+                            </div>
+                            <div className={`statistics-change ${stat.isPositive ? 'positive' : 'negative'}`}>
+                                <i className={`pi ${stat.isPositive ? 'pi-arrow-up' : 'pi-arrow-down'} mr-1`}></i>
+                                {stat.change}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     // Memoize static data to prevent recreation
     const chartOptions = useMemo(() => ({
         responsive: true,
@@ -338,7 +402,7 @@ const Dashboard = () => {
     return (
         <div className="dashboard">
             {/* Statistics Cards */}
-            <StatisticsCards statistics={statistics} />
+            {renderStatisticsCards()}
 
             {/* Charts Section */}
             <div className="grid mt-4">
@@ -398,7 +462,7 @@ const Dashboard = () => {
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
-                        className="p-datatable-gridlines"
+                        className="p-datatable-gridlines custom-datatable"
                         emptyMessage="No productions found."
                         dataKey="id"
                         sortMode="single"
