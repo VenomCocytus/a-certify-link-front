@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card } from 'primereact/card';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -14,6 +14,7 @@ import { apiService } from '../../services/apiService';
 import { useToast } from '../../contexts/ToastContext';
 import './Dashboard.css';
 
+//TODO: Update the datatable to show relevant data and filter based on it
 const Dashboard = () => {
     const [certificates, setCertificates] = useState([]);
     const [filteredCertificates, setFilteredCertificates] = useState([]);
@@ -28,80 +29,13 @@ const Dashboard = () => {
         dateFrom: null,
         dateTo: null,
         certificateType: '',
-        channel: '' // **NEW**: Added channel filter
+        channel: ''
     });
 
     const { showError, showSuccess } = useToast();
 
-    // Fetch dashboard data on component mount
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
-
-    // Apply filters when certificates or filters change
-    useEffect(() => {
-        applyFilters();
-    }, [certificates, filters]);
-
-    const fetchDashboardData = async () => {
-        setLoading(true);
-        try {
-            // **UPDATED**: Fetch productions instead of certificates and statistics in parallel
-            const [certsResponse, statsResponse] = await Promise.allSettled([
-                apiService.getCertificates(), // This now calls /productions endpoint
-                fetchStatistics()
-            ]);
-
-            if (certsResponse.status === 'fulfilled') {
-                const certsData = certsResponse.value.data;
-                // **UPDATED**: Handle the new API response structure
-                setCertificates(Array.isArray(certsData) ? certsData : certsData.data || []);
-            } else {
-                // Use mock data if API fails
-                setCertificates(generateMockCertificates());
-            }
-
-            if (statsResponse.status === 'fulfilled') {
-                setStatistics(statsResponse.value);
-                generateChartData(statsResponse.value);
-            }
-
-        } catch (error) {
-            showError('Failed to load dashboard data');
-            // Use mock data as fallback
-            setCertificates(generateMockCertificates());
-            setStatistics(generateMockStatistics());
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchStatistics = async () => {
-        try {
-            const [usage, available, used] = await Promise.all([
-                apiService.getCertificateStats().catch(() => null),
-                apiService.getAvailableStats().catch(() => null),
-                apiService.getUsedStats().catch(() => null)
-            ]);
-
-            return {
-                usage: usage?.data || { total: 0, thisMonth: 0 },
-                available: available?.data || { total: 0 },
-                used: used?.data || { total: 0, thisMonth: 0 }
-            };
-        } catch (error) {
-            return generateMockStatistics();
-        }
-    };
-
-    const generateMockStatistics = () => ({
-        usage: { total: 1245, thisMonth: 89 },
-        available: { total: 456 },
-        used: { total: 789, thisMonth: 123 }
-    });
-
-    // **UPDATED**: Generate mock data based on new API structure
-    const generateMockCertificates = () => [
+    // Memoize the generateMockCertificates function to prevent recreation
+    const generateMockCertificates = useCallback(() => [
         {
             id: 'pro_jD6z3EdvdG7yV',
             reference: 'PROD-072025-F70BF81A1E',
@@ -130,9 +64,36 @@ const Dashboard = () => {
                 address: 'Test Address'
             }
         }
-    ];
+    ], []);
 
-    const generateChartData = (stats) => {
+    // Memoize the generateMockStatistics function
+    const generateMockStatistics = useCallback(() => ({
+        usage: { total: 1245, thisMonth: 89 },
+        available: { total: 456 },
+        used: { total: 789, thisMonth: 123 }
+    }), []);
+
+    // Memoize the fetchStatistics function
+    const fetchStatistics = useCallback(async () => {
+        try {
+            const [usage, available, used] = await Promise.all([
+                apiService.getCertificateStats().catch(() => null),
+                apiService.getAvailableStats().catch(() => null),
+                apiService.getUsedStats().catch(() => null)
+            ]);
+
+            return {
+                usage: usage?.data || { total: 0, thisMonth: 0 },
+                available: available?.data || { total: 0 },
+                used: used?.data || { total: 0, thisMonth: 0 }
+            };
+        } catch (error) {
+            return generateMockStatistics();
+        }
+    }, [generateMockStatistics]);
+
+    // Memoize the generateChartData function
+    const generateChartData = useCallback((stats) => {
         const data = {
             labels: ['Available', 'Used', 'Pending'],
             datasets: [
@@ -156,25 +117,62 @@ const Dashboard = () => {
             ]
         };
         setChartData(data);
-    };
+    }, []);
 
-    const applyFilters = () => {
+    // Memoize the fetchDashboardData function
+    const fetchDashboardData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [certsResponse, statsResponse] = await Promise.allSettled([
+                apiService.getCertificates(),
+                fetchStatistics()
+            ]);
+
+            if (certsResponse.status === 'fulfilled') {
+                const certsData = certsResponse.value.data;
+                const certificatesData = Array.isArray(certsData) ? certsData : certsData.data || [];
+                setCertificates(certificatesData);
+            } else {
+                setCertificates(generateMockCertificates());
+            }
+
+            if (statsResponse.status === 'fulfilled') {
+                setStatistics(statsResponse.value);
+                generateChartData(statsResponse.value);
+            } else {
+                const mockStats = generateMockStatistics();
+                setStatistics(mockStats);
+                generateChartData(mockStats);
+            }
+
+        } catch (error) {
+            showError('Failed to load dashboard data');
+            setCertificates(generateMockCertificates());
+            const mockStats = generateMockStatistics();
+            setStatistics(mockStats);
+            generateChartData(mockStats);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchStatistics, generateMockCertificates, generateMockStatistics, generateChartData, showError]);
+
+    // Memoize the applyFilters function
+    const applyFilters = useCallback(() => {
         let filtered = certificates;
 
-        // **UPDATED**: Apply search filter based on new data structure
         if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
             filtered = filtered.filter(cert =>
-                cert.reference?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.user?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.user?.email?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.organization?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.organization?.code?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.office?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                cert.office?.code?.toLowerCase().includes(filters.search.toLowerCase())
+                cert.reference?.toLowerCase().includes(searchLower) ||
+                cert.user?.name?.toLowerCase().includes(searchLower) ||
+                cert.user?.email?.toLowerCase().includes(searchLower) ||
+                cert.organization?.name?.toLowerCase().includes(searchLower) ||
+                cert.organization?.code?.toLowerCase().includes(searchLower) ||
+                cert.office?.name?.toLowerCase().includes(searchLower) ||
+                cert.office?.code?.toLowerCase().includes(searchLower)
             );
         }
 
-        // **UPDATED**: Apply status filter based on storage status
         if (filters.status) {
             if (filters.status === 'sent_to_storage') {
                 filtered = filtered.filter(cert => cert.sent_to_storage === true);
@@ -183,37 +181,46 @@ const Dashboard = () => {
             }
         }
 
-        // **NEW**: Apply channel filter
         if (filters.channel) {
             filtered = filtered.filter(cert => cert.channel === filters.channel);
         }
 
-        // Apply date filters
         if (filters.dateFrom) {
-            filtered = filtered.filter(cert => new Date(cert.created_at) >= new Date(filters.dateFrom));
+            const fromDate = new Date(filters.dateFrom);
+            filtered = filtered.filter(cert => new Date(cert.created_at) >= fromDate);
         }
 
         if (filters.dateTo) {
-            filtered = filtered.filter(cert => new Date(cert.created_at) <= new Date(filters.dateTo));
+            const toDate = new Date(filters.dateTo);
+            filtered = filtered.filter(cert => new Date(cert.created_at) <= toDate);
         }
 
         setFilteredCertificates(filtered);
-    };
+    }, [certificates, filters]);
 
-    const handleFilterChange = (newFilters) => {
+    // Fetch dashboard data on component mount
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
+
+    // Apply filters when certificates or filters change
+    useEffect(() => {
+        applyFilters();
+    }, [applyFilters]);
+
+    // Memoize event handlers
+    const handleFilterChange = useCallback((newFilters) => {
         setFilters(newFilters);
-    };
+    }, []);
 
-    const handleViewCertificate = (certificate) => {
+    const handleViewCertificate = useCallback((certificate) => {
         setSelectedCertificate(certificate);
         setShowDetails(true);
-    };
+    }, []);
 
-    // **UPDATED**: Download certificate with new API structure
-    const handleDownloadCertificate = async (certificate) => {
+    const handleDownloadCertificate = useCallback(async (certificate) => {
         try {
             const response = await apiService.downloadCertificateExternal(certificate.reference);
-            // Create blob and download
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -225,10 +232,14 @@ const Dashboard = () => {
         } catch (error) {
             showError('Failed to download certificate');
         }
-    };
+    }, [showSuccess, showError]);
 
-    // **UPDATED**: Status template based on storage status
-    const statusBodyTemplate = (rowData) => {
+    const handleHideDetails = useCallback(() => {
+        setShowDetails(false);
+    }, []);
+
+    // Memoize template functions to prevent recreation on every render
+    const statusBodyTemplate = useCallback((rowData) => {
         const severity = rowData.sent_to_storage ? 'success' : 'warning';
         const value = rowData.sent_to_storage ? 'SENT TO STORAGE' : 'NOT SENT TO STORAGE';
 
@@ -238,10 +249,9 @@ const Dashboard = () => {
                 severity={severity}
             />
         );
-    };
+    }, []);
 
-    // **NEW**: Channel template
-    const channelBodyTemplate = (rowData) => {
+    const channelBodyTemplate = useCallback((rowData) => {
         const severity = rowData.channel === 'web' ? 'info' : 'secondary';
 
         return (
@@ -250,9 +260,9 @@ const Dashboard = () => {
                 severity={severity}
             />
         );
-    };
+    }, []);
 
-    const actionBodyTemplate = (rowData) => {
+    const actionBodyTemplate = useCallback((rowData) => {
         return (
             <div className="flex gap-2">
                 <Button
@@ -269,42 +279,44 @@ const Dashboard = () => {
                 />
             </div>
         );
-    };
+    }, [handleViewCertificate, handleDownloadCertificate]);
 
-    // **UPDATED**: Date template using created_at
-    const dateBodyTemplate = (rowData) => {
+    const dateBodyTemplate = useCallback((rowData) => {
         return rowData.formatted_created_at || new Date(rowData.created_at).toLocaleDateString('fr-CM');
-    };
+    }, []);
 
-    // **NEW**: User template
-    const userBodyTemplate = (rowData) => {
+    const userBodyTemplate = useCallback((rowData) => {
         return (
             <div>
                 <div className="font-medium">{rowData.user?.name || 'N/A'}</div>
                 <small className="text-500">{rowData.user?.email || ''}</small>
             </div>
         );
-    };
+    }, []);
 
-    // **NEW**: Organization template
-    const organizationBodyTemplate = (rowData) => {
+    const organizationBodyTemplate = useCallback((rowData) => {
         return (
             <div>
                 <div className="font-medium">{rowData.organization?.name || 'N/A'}</div>
                 <small className="text-500">{rowData.organization?.code || ''}</small>
             </div>
         );
-    };
+    }, []);
 
-    // **NEW**: Office template
-    const officeBodyTemplate = (rowData) => {
+    const officeBodyTemplate = useCallback((rowData) => {
         return (
             <div>
                 <div className="font-medium">{rowData.office?.name || 'N/A'}</div>
                 <small className="text-500">{rowData.office?.code || ''}</small>
             </div>
         );
-    };
+    }, []);
+
+    // Memoize static data to prevent recreation
+    const chartOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false
+    }), []);
 
     if (loading) {
         return (
@@ -331,9 +343,14 @@ const Dashboard = () => {
             {/* Charts Section */}
             <div className="grid mt-4">
                 <div className="col-12 lg:col-6">
-                    <Card title="Production Distribution" className="h-full"> {/* **UPDATED**: Changed title */}
+                    <Card title="Production Distribution" className="h-full">
                         {chartData ? (
-                            <Chart type="pie" data={chartData} className="w-full md:w-30rem" />
+                            <Chart
+                                type="pie"
+                                data={chartData}
+                                options={chartOptions}
+                                className="w-full md:w-30rem"
+                            />
                         ) : (
                             <Skeleton height="300px" />
                         )}
@@ -345,14 +362,14 @@ const Dashboard = () => {
                             <div className="flex align-items-center">
                                 <i className="pi pi-file-pdf text-blue-500 mr-3"></i>
                                 <div>
-                                    <p className="m-0 font-medium">New production created</p> {/* **UPDATED** */}
+                                    <p className="m-0 font-medium">New production created</p>
                                     <small className="text-500">2 hours ago</small>
                                 </div>
                             </div>
                             <div className="flex align-items-center">
                                 <i className="pi pi-check-circle text-green-500 mr-3"></i>
                                 <div>
-                                    <p className="m-0 font-medium">Production sent to storage</p> {/* **UPDATED** */}
+                                    <p className="m-0 font-medium">Production sent to storage</p>
                                     <small className="text-500">4 hours ago</small>
                                 </div>
                             </div>
@@ -373,27 +390,30 @@ const Dashboard = () => {
                 <CertificateFilter onFilterChange={handleFilterChange} />
             </div>
 
-            {/* **UPDATED**: Productions Table */}
+            {/* Productions Table */}
             <div className="mt-4">
-                <Card title="Productions" className="certificate-table-card"> {/* **UPDATED**: Changed title */}
+                <Card title="Productions" className="certificate-table-card">
                     <DataTable
                         value={filteredCertificates}
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="p-datatable-gridlines"
-                        emptyMessage="No productions found." // **UPDATED**
+                        emptyMessage="No productions found."
+                        dataKey="id"
+                        sortMode="single"
+                        removableSort
                     >
                         <Column field="reference" header="Reference" sortable />
-                        <Column field="quantity" header="Quantity" sortable /> {/* **NEW** */}
-                        <Column field="channel" header="Channel" body={channelBodyTemplate} sortable /> {/* **NEW** */}
-                        <Column header="User" body={userBodyTemplate} sortable /> {/* **NEW** */}
-                        <Column header="Organization" body={organizationBodyTemplate} sortable /> {/* **NEW** */}
-                        <Column header="Office" body={officeBodyTemplate} sortable /> {/* **NEW** */}
-                        <Column field="sent_to_storage" header="Storage Status" body={statusBodyTemplate} sortable /> {/* **UPDATED** */}
+                        <Column field="quantity" header="Quantity" sortable />
+                        <Column field="channel" header="Channel" body={channelBodyTemplate} sortable />
+                        <Column header="User" body={userBodyTemplate} sortable />
+                        <Column header="Organization" body={organizationBodyTemplate} sortable />
+                        <Column header="Office" body={officeBodyTemplate} sortable />
+                        <Column field="sent_to_storage" header="Storage Status" body={statusBodyTemplate} sortable />
                         <Column
                             field="created_at"
-                            header="Created At" // **UPDATED**
+                            header="Created At"
                             body={dateBodyTemplate}
                             sortable
                         />
@@ -406,7 +426,7 @@ const Dashboard = () => {
             <CertificateDetails
                 certificate={selectedCertificate}
                 visible={showDetails}
-                onHide={() => setShowDetails(false)}
+                onHide={handleHideDetails}
             />
         </div>
     );

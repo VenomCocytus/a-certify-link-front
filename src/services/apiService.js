@@ -110,10 +110,10 @@ export const apiService = {
         apiClient.get('/certificate-types'),
 
     downloadCertificateLinkFromDb: (reference) =>
-        apiClient.post(`/certify-link/certificates/${reference}/download-link`, { responseType: 'blob' }),
+        apiClient.get(`/certify-link/certificates/${reference}/download-link`),
 
     downloadCertificateExternal: (reference) =>
-        apiClient.get(`/certify-link/certificates/${reference}/download`, { responseType: 'blob' }),
+        apiClient.post(`/certify-link/certificates/${reference}/download`, { responseType: 'blob' }),
 
     cancelCertificate: (reference, reason) =>
         apiClient.post(`/certificates/${reference}/cancel`, { reason }),
