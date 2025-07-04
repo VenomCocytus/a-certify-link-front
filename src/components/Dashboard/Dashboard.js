@@ -31,6 +31,10 @@ const Dashboard = () => {
         certificateType: '',
         channel: ''
     });
+    const [downloadLoading, setDownloadLoading] = useState({
+        external: false,
+        database: false
+    });
 
     const { showError, showSuccess } = useToast();
 
@@ -218,21 +222,28 @@ const Dashboard = () => {
         setShowDetails(true);
     }, []);
 
-    const handleDownloadCertificate = useCallback(async (certificate) => {
+    const handleDownloadCertificate = async (rowData) => {
+        setDownloadLoading(prev => ({ ...prev, database: true }));
         try {
-            const response = await apiService.downloadCertificateExternal(certificate.reference);
-            const blob = new Blob([response.data], { type: 'application/pdf' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Certificate-${certificate.reference}.pdf`;
-            link.click();
-            window.URL.revokeObjectURL(url);
-            showSuccess('Certificate downloaded successfully');
+            // First, get the download link from the database
+            const linkResponse = await apiService.downloadCertificateLinkFromDb(rowData.reference);
+            console.log(linkResponse);
+
+            if (linkResponse.data?.data?.downloadLink) {
+                // Use the provided download link
+                const link = document.createElement('a');
+                link.href = linkResponse.data.data.downloadLink;
+                link.download = `Certificate-${rowData.reference}.jpeg`;
+                link.click();
+                showSuccess('Certificate downloaded successfully from database');
+            } else {
+                showError('Download link not available in database');
+            }
         } catch (error) {
-            showError('Failed to download certificate');
+            console.log(error);
+            setDownloadLoading(prev => ({ ...prev, database: false }));
         }
-    }, [showSuccess, showError]);
+    };
 
     const handleHideDetails = useCallback(() => {
         setShowDetails(false);
@@ -275,6 +286,7 @@ const Dashboard = () => {
                     icon="pi pi-download"
                     className="p-button-rounded p-button-text p-button-sm"
                     onClick={() => handleDownloadCertificate(rowData)}
+                    loading={downloadLoading.database}
                     tooltip="Download Certificate"
                 />
             </div>

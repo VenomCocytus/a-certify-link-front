@@ -52,7 +52,7 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `Certificate-${certificate.reference}.pdf`;
+            link.download = `Certificate-${certificate.reference}.jpeg`;
             link.click();
             window.URL.revokeObjectURL(url);
             showSuccess('Certificate downloaded successfully from external API');
@@ -63,18 +63,18 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
         }
     };
 
-    // **NEW**: Download from database (gets download link first)
+    // Download from a database (gets download link first)
     const handleDownloadFromDatabase = async () => {
         setDownloadLoading(prev => ({ ...prev, database: true }));
         try {
-            // First get the download link from database
+            // First, get the download link from the database
             const linkResponse = await apiService.downloadCertificateLinkFromDb(certificate.reference);
 
             if (linkResponse.data?.data?.downloadLink) {
                 // Use the provided download link
                 const link = document.createElement('a');
                 link.href = linkResponse.data.data.downloadLink;
-                link.download = `Certificate-${certificate.reference}.pdf`;
+                link.download = `Certificate-${certificate.reference}.jpeg`;
                 link.click();
                 showSuccess('Certificate downloaded successfully from database');
             } else {
@@ -88,7 +88,7 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `Certificate-${certificate.reference}.pdf`;
+                link.download = `Certificate-${certificate.reference}.jpeg`;
                 link.click();
                 window.URL.revokeObjectURL(url);
                 showSuccess('Certificate downloaded successfully');
@@ -151,14 +151,14 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
             <div className="flex gap-2">
                 {/* **NEW**: Two download options */}
                 <Button
-                    label="Download from API"
+                    label="Download Zip File"
                     icon="pi pi-download"
                     onClick={handleDownloadExternal}
                     loading={downloadLoading.external}
                     tooltip="Download directly from external API"
                 />
                 <Button
-                    label="Download from DB"
+                    label="Download Certificate"
                     icon="pi pi-database"
                     className="p-button-outlined"
                     onClick={handleDownloadFromDatabase}
@@ -401,33 +401,6 @@ const CertificateDetails = ({ certificate, visible, onHide }) => {
                             <Divider />
 
                             <div className="flex flex-column gap-3">
-                                <div className="flex align-items-center justify-content-between p-3 border-round surface-100">
-                                    <div>
-                                        <h4 className="m-0 text-900">Download from External API</h4> {/* **NEW** */}
-                                        <p className="mt-1 mb-0 text-600">Download directly from the external production API</p>
-                                    </div>
-                                    <Button
-                                        label="Download"
-                                        icon="pi pi-download"
-                                        onClick={handleDownloadExternal}
-                                        loading={downloadLoading.external}
-                                    />
-                                </div>
-
-                                <div className="flex align-items-center justify-content-between p-3 border-round surface-100">
-                                    <div>
-                                        <h4 className="m-0 text-900">Download from Database</h4> {/* **NEW** */}
-                                        <p className="mt-1 mb-0 text-600">Download using stored database link (if available)</p>
-                                    </div>
-                                    <Button
-                                        label="Download"
-                                        icon="pi pi-database"
-                                        className="p-button-outlined"
-                                        onClick={handleDownloadFromDatabase}
-                                        loading={downloadLoading.database}
-                                    />
-                                </div>
-
                                 {!certificate.sent_to_storage && ( // **UPDATED**: Only show actions if not sent to storage
                                     <>
                                         <div className="flex align-items-center justify-content-between p-3 border-round surface-100">

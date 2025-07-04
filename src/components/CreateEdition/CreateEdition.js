@@ -8,6 +8,8 @@ import { Divider } from 'primereact/divider';
 import { Tag } from 'primereact/tag';
 import { Dialog } from 'primereact/dialog';
 import { Panel } from 'primereact/panel';
+import { InputNumber } from 'primereact/inputnumber';
+import { Calendar } from 'primereact/calendar';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../../contexts/ToastContext';
 import './CreateEdition.css';
@@ -31,9 +33,30 @@ const CreateEdition = () => {
         applicantCode: ''
     });
 
-    // Step 2: Edition Form - Only notification field is editable
+    // Step 2: Edition Form - Contains all editable fields
     const [editionForm, setEditionForm] = useState({
-        emailNotification: ''
+        emailNotification: '',
+        vehicleRegistrationNumber: '',
+        policyEffectiveDate: null,
+        policyExpiryDate: null,
+        vehicleFiscalPower: null,
+        vehicleUsefulLoad: null,
+        fleetReduction: null,
+        opATD: '',
+        // Fields that can be edited if null in policy data
+        subscriberName: '',
+        subscriberPhone: '',
+        subscriberEmail: '',
+        subscriberPoBox: '',
+        insuredName: '',
+        insuredPhone: '',
+        insuredEmail: '',
+        insuredPoBox: '',
+        vehicleChassisNumber: '',
+        vehicleBrand: '',
+        vehicleModel: '',
+        vehicleSeats: null,
+        premiumRC: null
     });
 
     const steps = [
@@ -41,6 +64,59 @@ const CreateEdition = () => {
         { label: 'Configure Edition' },
         { label: 'Review & Submit' }
     ];
+
+    // Initialize editable form fields when policy data is received
+    useEffect(() => {
+        if (policyData) {
+            setEditionForm(prev => ({
+                ...prev,
+                emailNotification: policyData.emailNotification || '',
+                vehicleRegistrationNumber: policyData.vehicleRegistrationNumber || '',
+                policyEffectiveDate: policyData.policyEffectiveDate ? new Date(policyData.policyEffectiveDate) : null,
+                policyExpiryDate: policyData.policyExpiryDate ? new Date(policyData.policyExpiryDate) : null,
+                // Set editable fields if they're null in policy data
+                subscriberName: policyData.subscriberName || '',
+                subscriberPhone: policyData.subscriberPhone || '',
+                subscriberEmail: policyData.subscriberEmail || '',
+                subscriberPoBox: policyData.subscriberPoBox || '',
+                insuredName: policyData.insuredName || '',
+                insuredPhone: policyData.insuredPhone || '',
+                insuredEmail: policyData.insuredEmail || '',
+                insuredPoBox: policyData.insuredPoBox || '',
+                vehicleChassisNumber: policyData.vehicleChassisNumber || '',
+                vehicleBrand: policyData.vehicleBrand || '',
+                vehicleModel: policyData.vehicleModel || '',
+                vehicleSeats: policyData.vehicleSeats || null,
+                premiumRC: policyData.premiumRC || null
+            }));
+        }
+    }, [policyData]);
+
+    // Helper function to check if a field should be editable
+    const isFieldEditable = (fieldName, policyValue) => {
+        // Always editable fields
+        const alwaysEditable = [
+            'emailNotification',
+            'vehicleRegistrationNumber',
+            'policyEffectiveDate',
+            'policyExpiryDate'
+        ];
+
+        // Optional fields (always editable)
+        const optionalFields = [
+            'vehicleFiscalPower',
+            'vehicleUsefulLoad',
+            'fleetReduction',
+            'opATD'
+        ];
+
+        if (alwaysEditable.includes(fieldName) || optionalFields.includes(fieldName)) {
+            return true;
+        }
+
+        // Other fields are editable only if null/empty in policy data
+        return !policyValue;
+    };
 
     const handleSearchPolicy = async () => {
         if (!searchForm.policyNumber || !searchForm.endorsementNumber || !searchForm.applicantCode) {
@@ -52,56 +128,56 @@ const CreateEdition = () => {
         setValidationErrors({});
 
         try {
-            // const response = await apiService.searchOrassPolicies({
-            //     policyNumber: searchForm.policyNumber,
-            //     endorsementNumber: searchForm.endorsementNumber,
-            //     applicantCode: searchForm.applicantCode,
-            //     limit: 1
-            // });
-            // console.log(response);
+            const response = await apiService.searchOrassPolicies({
+                policyNumber: searchForm.policyNumber,
+                endorsementNumber: searchForm.endorsementNumber,
+                applicantCode: searchForm.applicantCode,
+                limit: 1
+            });
+            console.log(response);
 
             // Mocked response as requested
-            const response = {
-                data: {
-                    data: [{
-                        policyNumber: "1006310001640",
-                        officeCode: "ASACI_ACTIVA_1001",
-                        organizationCode: "ASACI_ACTIVA",
-                        certificateType: "cima",
-                        emailNotification: "notifications@example.com",
-                        generatedBy: "01JYM40ESBJPFHY4AVJBTXVJVE",
-                        channel: "web",
-                        certificateColor: "cima-jaune",
-                        premiumRC: 25000,
-                        vehicleEnergy: "SEDI",
-                        vehicleChassisNumber: "VF1KM0B0H58123456",
-                        vehicleModel: "TOYOTA CAMRY 2023",
-                        vehicleGenre: "GV01",
-                        vehicleCategory: "01",
-                        vehicleUsage: "UV01",
-                        vehicleBrand: "FIAT",
-                        vehicleType: "TV01",
-                        vehicleSeats: 5,
-                        subscriberType: "ST01",
-                        subscriberPhone: "+237690123456",
-                        subscriberPoBox: "BP 1234",
-                        subscriberEmail: "souscripteur@example.com",
-                        subscriberName: "MARTIN DUPONT",
-                        insuredPhone: "+237691234567",
-                        insuredPoBox: "BP 5678",
-                        insuredName: "JEAN MARTIN",
-                        insuredEmail: "assure@example.com",
-                        vehicleRegistrationNumber: "LT-123-AK",
-                        policyEffectiveDate: "2028-07-10",
-                        policyExpiryDate: "2029-07-09",
-                        vehicleFiscalPower: 8,
-                        vehicleUsefulLoad: 500,
-                        fleetReduction: 6,
-                        rNum: 1,
-                        opATD: null
-                    }]
-                }
-            };
+            // const response = {
+            //     data: {
+            //         data: [{
+            //             policyNumber: "1006310001640",
+            //             officeCode: "ASACI_ACTIVA_1001", //Changed
+            //             organizationCode: "ASACI_ACTIVA",
+            //             certificateType: "cima",
+            //             emailNotification: "notifications@example.com",
+            //             generatedBy: "01JYM40ESBJPFHY4AVJBTXVJVE",
+            //             channel: "api",
+            //             certificateColor: "cima-jaune",
+            //             premiumRC: 25000,
+            //             vehicleEnergy: "SEES",
+            //             vehicleChassisNumber: "4445h",
+            //             vehicleModel: "MODEL",
+            //             vehicleGenre: "GV04",
+            //             vehicleCategory: "01",
+            //             vehicleUsage: "UV01",
+            //             vehicleBrand: "FIAT",
+            //             vehicleType: "TV10",
+            //             vehicleSeats: 5,
+            //             subscriberType: "TSPP",
+            //             subscriberPhone: "0505880215",
+            //             subscriberPoBox: "+237693082941",
+            //             subscriberEmail: "wy.kouadio@gmail.com",
+            //             subscriberName: "Usertest Enca",
+            //             insuredPhone: "0505880215",
+            //             insuredPoBox: "+237693082941",
+            //             insuredName: "Usertest Enca",
+            //             insuredEmail: "wy.kouadio@gmail.com",
+            //             vehicleRegistrationNumber: "4445h",
+            //             policyEffectiveDate: "2025-07-14",
+            //             policyExpiryDate: "2025-08-15",
+            //             vehicleFiscalPower: 9,
+            //             vehicleUsefulLoad: 0,
+            //             fleetReduction: 0,
+            //             rNum: 1,
+            //             opATD: null
+            //         }]
+            //     }
+            // };
 
             if (response.data?.data && response.data.data.length > 0) {
                 const policy = response.data.data[0];
@@ -123,50 +199,53 @@ const CreateEdition = () => {
             showError('No policy data available');
             return;
         }
-
         setLoading(true);
         setValidationErrors({});
 
         try {
-            // Create edition request using policy data directly
+            // Create edition request using a combination of policy data and editable form data
             const editionRequest = {
                 policyNumber: policyData.policyNumber || searchForm.policyNumber,
                 organizationCode: policyData.organizationCode,
                 officeCode: policyData.officeCode,
                 certificateType: policyData.certificateType,
                 emailNotification: editionForm.emailNotification,
-                generatedBy: policyData.generatedBy || 'Web Interface',
-                channel: policyData.channel || 'web',
+                generatedBy: policyData.generatedBy,
+                channel: policyData.channel,
                 certificateColor: policyData.certificateColor,
 
-                // All other fields come from policy data
-                subscriberName: policyData.subscriberName || '',
-                subscriberPhone: policyData.subscriberPhone || '',
-                subscriberEmail: policyData.subscriberEmail || '',
-                subscriberPoBox: policyData.subscriberPoBox || '',
-                insuredName: policyData.insuredName || policyData.subscriberName || '',
-                insuredPhone: policyData.insuredPhone || policyData.subscriberPhone || '',
-                insuredEmail: policyData.insuredEmail || policyData.subscriberEmail || '',
-                insuredPoBox: policyData.insuredPoBox || policyData.subscriberPoBox || '',
-                vehicleRegistrationNumber: policyData.vehicleRegistrationNumber || '',
-                vehicleChassisNumber: policyData.vehicleChassisNumber || '',
-                vehicleBrand: policyData.vehicleBrand || '',
-                vehicleModel: policyData.vehicleModel || '',
-                vehicleType: policyData.vehicleType || 'UV01',
-                vehicleCategory: policyData.vehicleCategory || 'UV01',
-                vehicleUsage: policyData.vehicleUsage || 'UV01',
-                vehicleGenre: policyData.vehicleGenre || 'UV01',
-                vehicleEnergy: policyData.vehicleEnergy || 'UV01',
-                vehicleSeats: policyData.vehicleSeats || 5,
-                vehicleFiscalPower: policyData.vehicleFiscalPower || 7,
-                vehicleUsefulLoad: policyData.vehicleUsefulLoad || 0,
-                fleetReduction: policyData.fleetReduction || 0,
-                subscriberType: policyData.subscriberType || 'UV01',
-                premiumRC: policyData.premiumRC || 50000,
-                policyEffectiveDate: policyData.policyEffectiveDate || new Date().toISOString().split('T')[0],
-                policyExpiryDate: policyData.policyExpiryDate || new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
+                // Use form values for editable fields, fallback to policy data
+                subscriberName: editionForm.subscriberName || policyData.subscriberName,
+                subscriberPhone: editionForm.subscriberPhone || policyData.subscriberPhone ,
+                subscriberEmail: editionForm.subscriberEmail || policyData.subscriberEmail,
+                subscriberPoBox: editionForm.subscriberPoBox || policyData.subscriberPoBox,
+                insuredName: editionForm.insuredName || policyData.insuredName || editionForm.subscriberName || policyData.subscriberName,
+                insuredPhone: editionForm.insuredPhone || policyData.insuredPhone || editionForm.subscriberPhone || policyData.subscriberPhone,
+                insuredEmail: editionForm.insuredEmail || policyData.insuredEmail || editionForm.subscriberEmail || policyData.subscriberEmail,
+                insuredPoBox: editionForm.insuredPoBox || policyData.insuredPoBox || editionForm.subscriberPoBox || policyData.subscriberPoBox,
+                vehicleRegistrationNumber: editionForm.vehicleRegistrationNumber,
+                vehicleChassisNumber: editionForm.vehicleChassisNumber || policyData.vehicleChassisNumber,
+                vehicleBrand: editionForm.vehicleBrand || policyData.vehicleBrand,
+                vehicleModel: editionForm.vehicleModel || policyData.vehicleModel,
+                vehicleType: policyData.vehicleType,
+                vehicleCategory: policyData.vehicleCategory,
+                vehicleUsage: policyData.vehicleUsage,
+                vehicleGenre: policyData.vehicleGenre,
+                vehicleEnergy: policyData.vehicleEnergy,
+                vehicleSeats: editionForm.vehicleSeats || policyData.vehicleSeats || 5,
+                vehicleFiscalPower: editionForm.vehicleFiscalPower || policyData.vehicleFiscalPower || 7,
+                vehicleUsefulLoad: editionForm.vehicleUsefulLoad || policyData.vehicleUsefulLoad || 0,
+                fleetReduction: editionForm.fleetReduction || policyData.fleetReduction || 0,
+                subscriberType: policyData.subscriberType,
+                premiumRC: editionForm.premiumRC || policyData.premiumRC || 50000,
+                policyEffectiveDate: editionForm.policyEffectiveDate ?
+                    new Date(editionForm.policyEffectiveDate.getTime() - editionForm.policyEffectiveDate.getTimezoneOffset() * 60000).toISOString().split('T')[0] :
+                    policyData.policyEffectiveDate || new Date().toISOString().split('T')[0],
+                policyExpiryDate: editionForm.policyExpiryDate ?
+                    new Date(editionForm.policyExpiryDate.getTime() - editionForm.policyExpiryDate.getTimezoneOffset() * 60000).toISOString().split('T')[0] :
+                    policyData.policyExpiryDate || new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
                 rNum: policyData.rNum || 1,
-                opATD: policyData.opATD || ''
+                opATD: editionForm.opATD || policyData.opATD
             };
 
             const response = await apiService.createEditionRequest(editionRequest);
@@ -230,7 +309,27 @@ const CreateEdition = () => {
             applicantCode: ''
         });
         setEditionForm({
-            emailNotification: ''
+            emailNotification: '',
+            vehicleRegistrationNumber: '',
+            policyEffectiveDate: null,
+            policyExpiryDate: null,
+            vehicleFiscalPower: null,
+            vehicleUsefulLoad: null,
+            fleetReduction: null,
+            opATD: '',
+            subscriberName: '',
+            subscriberPhone: '',
+            subscriberEmail: '',
+            subscriberPoBox: '',
+            insuredName: '',
+            insuredPhone: '',
+            insuredEmail: '',
+            insuredPoBox: '',
+            vehicleChassisNumber: '',
+            vehicleBrand: '',
+            vehicleModel: '',
+            vehicleSeats: null,
+            premiumRC: null
         });
     };
 
@@ -319,7 +418,7 @@ const CreateEdition = () => {
         </Card>
     );
 
-    // Step 2: Configure Edition - Only notification field editable
+    // Step 2: Configure Edition - Dynamic editable fields
     const renderConfigureStep = () => (
         <div className="grid">
             <div className="col-12 lg:col-8">
@@ -352,7 +451,6 @@ const CreateEdition = () => {
                                     className="w-full"
                                     disabled
                                 />
-                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
@@ -366,7 +464,6 @@ const CreateEdition = () => {
                                     className="w-full"
                                     disabled
                                 />
-                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
@@ -380,7 +477,6 @@ const CreateEdition = () => {
                                     className="w-full"
                                     disabled
                                 />
-                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
@@ -394,43 +490,14 @@ const CreateEdition = () => {
                                     className="w-full"
                                     disabled
                                 />
-                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
+                        {/* Always editable fields */}
                         <div className="col-12 md:col-6">
-                            <div className="field">
-                                <label className="block text-900 font-medium mb-2">
-                                    Channel
-                                </label>
-                                <InputText
-                                    value={policyData?.channel || 'web'}
-                                    className="w-full"
-                                    disabled
-                                />
-                                <small className="text-500">From policy data</small>
-                            </div>
-                        </div>
-
-                        <div className="col-12 md:col-6">
-                            <div className="field">
-                                <label className="block text-900 font-medium mb-2">
-                                    Generated By
-                                </label>
-                                <InputText
-                                    value={policyData?.generatedBy || 'Web Interface'}
-                                    className="w-full"
-                                    disabled
-                                />
-                                <small className="text-500">From policy data</small>
-                            </div>
-                        </div>
-
-                        {/* Only editable field */}
-                        <div className="col-12">
                             <div className="field">
                                 <label htmlFor="emailNotification" className="block text-900 font-medium mb-2">
-                                    Email Notification
+                                    Email Notification *
                                 </label>
                                 <InputText
                                     id="emailNotification"
@@ -440,9 +507,281 @@ const CreateEdition = () => {
                                     placeholder="Enter notification email"
                                     className="w-full"
                                 />
-                                <small className="text-500">This is the only editable field</small>
                             </div>
                         </div>
+
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label htmlFor="vehicleRegistrationNumber" className="block text-900 font-medium mb-2">
+                                    Vehicle Registration Number *
+                                </label>
+                                <InputText
+                                    id="vehicleRegistrationNumber"
+                                    value={editionForm.vehicleRegistrationNumber}
+                                    onChange={(e) => setEditionForm(prev => ({ ...prev, vehicleRegistrationNumber: e.target.value }))}
+                                    placeholder="Enter vehicle registration number"
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label htmlFor="policyEffectiveDate" className="block text-900 font-medium mb-2">
+                                    Policy Effective Date *
+                                </label>
+                                <Calendar
+                                    id="policyEffectiveDate"
+                                    value={editionForm.policyEffectiveDate}
+                                    onChange={(e) => setEditionForm(prev => ({ ...prev, policyEffectiveDate: e.value }))}
+                                    dateFormat="yy-mm-dd"
+                                    placeholder="Select effective date"
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label htmlFor="policyExpiryDate" className="block text-900 font-medium mb-2">
+                                    Policy Expiry Date *
+                                </label>
+                                <Calendar
+                                    id="policyExpiryDate"
+                                    value={editionForm.policyExpiryDate}
+                                    onChange={(e) => setEditionForm(prev => ({ ...prev, policyExpiryDate: e.value }))}
+                                    dateFormat="yy-mm-dd"
+                                    placeholder="Select expiry date"
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Conditionally editable fields - only if null in policy data */}
+                        {!policyData?.subscriberName && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="subscriberName" className="block text-900 font-medium mb-2">
+                                        Subscriber Name
+                                    </label>
+                                    <InputText
+                                        id="subscriberName"
+                                        value={editionForm.subscriberName}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, subscriberName: e.target.value }))}
+                                        placeholder="Enter subscriber name"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.subscriberPhone && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="subscriberPhone" className="block text-900 font-medium mb-2">
+                                        Subscriber Phone
+                                    </label>
+                                    <InputText
+                                        id="subscriberPhone"
+                                        value={editionForm.subscriberPhone}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, subscriberPhone: e.target.value }))}
+                                        placeholder="Enter subscriber phone"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.subscriberEmail && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="subscriberEmail" className="block text-900 font-medium mb-2">
+                                        Subscriber Email
+                                    </label>
+                                    <InputText
+                                        id="subscriberEmail"
+                                        type="email"
+                                        value={editionForm.subscriberEmail}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, subscriberEmail: e.target.value }))}
+                                        placeholder="Enter subscriber email"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.subscriberPoBox && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="subscriberPoBox" className="block text-900 font-medium mb-2">
+                                        Subscriber PO Box
+                                    </label>
+                                    <InputText
+                                        id="subscriberPoBox"
+                                        type="text"
+                                        value={editionForm.subscriberPoBox}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, subscriberPoBox: e.target.value }))}
+                                        placeholder="Enter PO Box"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.vehicleBrand && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="vehicleBrand" className="block text-900 font-medium mb-2">
+                                        Vehicle Brand
+                                    </label>
+                                    <InputText
+                                        id="vehicleBrand"
+                                        value={editionForm.vehicleBrand}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, vehicleBrand: e.target.value }))}
+                                        placeholder="Enter vehicle brand"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.vehicleModel && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="vehicleModel" className="block text-900 font-medium mb-2">
+                                        Vehicle Model
+                                    </label>
+                                    <InputText
+                                        id="vehicleModel"
+                                        value={editionForm.vehicleModel}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, vehicleModel: e.target.value }))}
+                                        placeholder="Enter vehicle model"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.vehicleChassisNumber && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="vehicleChassisNumber" className="block text-900 font-medium mb-2">
+                                        Vehicle Chassis Number
+                                    </label>
+                                    <InputText
+                                        id="vehicleChassisNumber"
+                                        value={editionForm.vehicleChassisNumber}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, vehicleChassisNumber: e.target.value }))}
+                                        placeholder="Enter chassis number"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.vehicleSeats && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="vehicleSeats" className="block text-900 font-medium mb-2">
+                                        Vehicle Seats
+                                    </label>
+                                    <InputNumber
+                                        id="vehicleSeats"
+                                        value={editionForm.vehicleSeats}
+                                        onValueChange={(e) => setEditionForm(prev => ({ ...prev, vehicleSeats: e.value }))}
+                                        placeholder="Enter number of seats"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.premiumRC && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="premiumRC" className="block text-900 font-medium mb-2">
+                                        Premium RC *
+                                    </label>
+                                    <InputNumber
+                                        id="premiumRC"
+                                        value={editionForm.premiumRC}
+                                        onValueChange={(e) => setEditionForm(prev => ({ ...prev, premiumRC: e.value }))}
+                                        placeholder="Enter premium RC"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.insuredName && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="insuredName" className="block text-900 font-medium mb-2">
+                                        Insured Name
+                                    </label>
+                                    <InputText
+                                        id="insuredName"
+                                        value={editionForm.insuredName}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, insuredName: e.target.value }))}
+                                        placeholder="Enter insured name"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.insuredPhone && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="insuredPhone" className="block text-900 font-medium mb-2">
+                                        Insured Phone
+                                    </label>
+                                    <InputText
+                                        id="insuredPhone"
+                                        value={editionForm.insuredPhone}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, insuredPhone: e.target.value }))}
+                                        placeholder="Enter insured phone"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.insuredEmail && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="insuredEmail" className="block text-900 font-medium mb-2">
+                                        Insured Email
+                                    </label>
+                                    <InputText
+                                        id="insuredEmail"
+                                        type="email"
+                                        value={editionForm.insuredEmail}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, insuredEmail: e.target.value }))}
+                                        placeholder="Enter insured email"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {!policyData?.insuredPoBox && (
+                            <div className="col-12 md:col-6">
+                                <div className="field">
+                                    <label htmlFor="insuredPoBox" className="block text-900 font-medium mb-2">
+                                        Insured PO Box
+                                    </label>
+                                    <InputText
+                                        id="insuredPoBox"
+                                        type="text"
+                                        value={editionForm.insuredPoBox}
+                                        onChange={(e) => setEditionForm(prev => ({ ...prev, insuredPoBox: e.target.value }))}
+                                        placeholder="Enter insured PO Box"
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </Card>
             </div>
@@ -499,6 +838,24 @@ const CreateEdition = () => {
                                 <span className="ml-2">{editionForm.emailNotification}</span>
                             </div>
                         )}
+                        {editionForm.vehicleRegistrationNumber && (
+                            <div className="field">
+                                <span className="font-medium">Vehicle Registration:</span>
+                                <span className="ml-2">{editionForm.vehicleRegistrationNumber}</span>
+                            </div>
+                        )}
+                        {editionForm.policyEffectiveDate && (
+                            <div className="field">
+                                <span className="font-medium">Policy Effective Date:</span>
+                                <span className="ml-2">{new Date(editionForm.policyEffectiveDate.getTime() - editionForm.policyEffectiveDate.getTimezoneOffset() * 60000).toISOString().split('T')[0]}</span>
+                            </div>
+                        )}
+                        {editionForm.policyExpiryDate && (
+                            <div className="field">
+                                <span className="font-medium">Policy Expiry Date:</span>
+                                <span className="ml-2">{new Date(editionForm.policyExpiryDate.getTime() - editionForm.policyExpiryDate.getTimezoneOffset() * 60000).toISOString().split('T')[0]}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -511,6 +868,32 @@ const CreateEdition = () => {
                                 <span className="ml-2">{value}</span>
                             </div>
                         ))}
+
+                        {/* Show edited values if different from policy data */}
+                        {editionForm.vehicleFiscalPower && (
+                            <div className="field">
+                                <span className="font-medium">Vehicle Fiscal Power (edited):</span>
+                                <span className="ml-2">{editionForm.vehicleFiscalPower}</span>
+                            </div>
+                        )}
+                        {editionForm.vehicleUsefulLoad && (
+                            <div className="field">
+                                <span className="font-medium">Vehicle Useful Load (edited):</span>
+                                <span className="ml-2">{editionForm.vehicleUsefulLoad}</span>
+                            </div>
+                        )}
+                        {editionForm.fleetReduction && (
+                            <div className="field">
+                                <span className="font-medium">Fleet Reduction (edited):</span>
+                                <span className="ml-2">{editionForm.fleetReduction}</span>
+                            </div>
+                        )}
+                        {editionForm.opATD && (
+                            <div className="field">
+                                <span className="font-medium">OP ATD (edited):</span>
+                                <span className="ml-2">{editionForm.opATD}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
