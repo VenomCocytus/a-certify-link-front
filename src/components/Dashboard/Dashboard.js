@@ -460,7 +460,7 @@ const Dashboard = () => {
                     <DataTable
                         value={filteredCertificates}
                         paginator
-                        rows={10}
+                        rows={5}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="p-datatable-gridlines custom-datatable"
                         emptyMessage="No productions found."

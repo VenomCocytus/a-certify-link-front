@@ -3,21 +3,26 @@ import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { Steps } from 'primereact/steps';
-import { Dropdown } from 'primereact/dropdown';
 import { Message } from 'primereact/message';
 import { Divider } from 'primereact/divider';
 import { Tag } from 'primereact/tag';
+import { Dialog } from 'primereact/dialog';
+import { Panel } from 'primereact/panel';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../../contexts/ToastContext';
 import './CreateEdition.css';
+import {useNavigate} from "react-router-dom";
 
 const CreateEdition = () => {
     const [activeIndex, setActiveIndex] = useState(0);
     const [loading, setLoading] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
     const [policyData, setPolicyData] = useState(null);
-    const [certificateColors, setCertificateColors] = useState([]);
+    const [validationErrors, setValidationErrors] = useState({});
+    const [successDialog, setSuccessDialog] = useState(false);
+    const [editionResult, setEditionResult] = useState(null);
     const { showSuccess, showError } = useToast();
+    const navigate = useNavigate();
 
     // Step 1: Search Policy
     const [searchForm, setSearchForm] = useState({
@@ -26,15 +31,9 @@ const CreateEdition = () => {
         applicantCode: ''
     });
 
-    // Step 2: Edition Form
+    // Step 2: Edition Form - Only notification field is editable
     const [editionForm, setEditionForm] = useState({
-        organizationCode: '',
-        officeCode: '',
-        certificateType: 'cima',
-        certificateColor: '',
-        emailNotification: '',
-        generatedBy: '',
-        channel: 'web'
+        emailNotification: ''
     });
 
     const steps = [
@@ -43,43 +42,6 @@ const CreateEdition = () => {
         { label: 'Review & Submit' }
     ];
 
-    const certificateTypes = [
-        { label: 'CIMA', value: 'cima' },
-        { label: 'POOL TPV', value: 'pooltpv' },
-        { label: 'MATCA', value: 'matca' },
-        { label: 'POOL TPV BLEU', value: 'pooltpvbleu' }
-    ];
-
-    const channelTypes = [
-        { label: 'Web', value: 'web' },
-        { label: 'API', value: 'api' }
-    ];
-
-    useEffect(() => {
-        fetchCertificateColors();
-    }, []);
-
-    const fetchCertificateColors = async () => {
-        try {
-            const response = await apiService.getCertificateColors();
-            const colors = response.data?.map(color => ({
-                label: color.name || color.label || color,
-                value: color.value || color.code || color
-            })) || [];
-            setCertificateColors(colors);
-        } catch (error) {
-            // Use mock data if API fails
-            setCertificateColors([
-                { label: 'CIMA Jaune', value: 'cima-jaune' },
-                { label: 'CIMA Verte', value: 'cima-verte' },
-                { label: 'POOL TPV Rouge', value: 'pooltpv-rouge' },
-                { label: 'POOL TPV Bleu', value: 'pooltpv-bleu' },
-                { label: 'POOL TPV Marron', value: 'pooltpv-marron' },
-                { label: 'MATCA Bleu', value: 'matca-bleu' }
-            ]);
-        }
-    };
-
     const handleSearchPolicy = async () => {
         if (!searchForm.policyNumber || !searchForm.endorsementNumber || !searchForm.applicantCode) {
             showError('Please fill in all search fields');
@@ -87,70 +49,65 @@ const CreateEdition = () => {
         }
 
         setSearchLoading(true);
+        setValidationErrors({});
+
         try {
-            const response = await apiService.searchOrassPolicies({
-                policyNumber: searchForm.policyNumber,
-                endorsementNumber: searchForm.endorsementNumber,
-                applicantCode: searchForm.applicantCode,
-                limit: 1
-            });
-            console.log(response);
+            // const response = await apiService.searchOrassPolicies({
+            //     policyNumber: searchForm.policyNumber,
+            //     endorsementNumber: searchForm.endorsementNumber,
+            //     applicantCode: searchForm.applicantCode,
+            //     limit: 1
+            // });
+            // console.log(response);
 
             // Mocked response as requested
-            // const response = {
-            //     data: {
-            //         data: [{
-            //             policyNumber: "1006310001640",
-            //             officeCode: "ASACI_ACTIVA_1001",
-            //             organizationCode: "ASACI_ACTIVA",
-            //             certificateType: "cima",
-            //             emailNotification: "notifications@example.com",
-            //             generatedBy: "01JYM40ESBJPFHY4AVJBTXVJVE",
-            //             channel: "web",
-            //             certificateColor: "cima-jaune",
-            //             premiumRC: 25000,
-            //             vehicleEnergy: "SEDI",
-            //             vehicleChassisNumber: "VF1KM0B0H58123456",
-            //             vehicleModel: "TOYOTA CAMRY 2023",
-            //             vehicleGenre: "GV01",
-            //             vehicleCategory: "01",
-            //             vehicleUsage: "UV01",
-            //             vehicleBrand: "FIAT",
-            //             vehicleType: "TV01",
-            //             vehicleSeats: 5,
-            //             subscriberType: "ST01",
-            //             subscriberPhone: "+237690123456",
-            //             subscriberPoBox: "BP 1234",
-            //             subscriberEmail: "souscripteur@example.com",
-            //             subscriberName: "MARTIN DUPONT",
-            //             insuredPhone: "+237691234567",
-            //             insuredPoBox: "BP 5678",
-            //             insuredName: "JEAN MARTIN",
-            //             insuredEmail: "assure@example.com",
-            //             vehicleRegistrationNumber: "LT-123-AC",
-            //             policyEffectiveDate: "2027-08-20",
-            //             policyExpiryDate: "2028-07-09",
-            //             vehicleFiscalPower: 8,
-            //             vehicleUsefulLoad: 500,
-            //             fleetReduction: 6,
-            //             rNum: 1,
-            //             opATD: null
-            //         }]
-            //     }
-            // };
+            const response = {
+                data: {
+                    data: [{
+                        policyNumber: "1006310001640",
+                        officeCode: "ASACI_ACTIVA_1001",
+                        organizationCode: "ASACI_ACTIVA",
+                        certificateType: "cima",
+                        emailNotification: "notifications@example.com",
+                        generatedBy: "01JYM40ESBJPFHY4AVJBTXVJVE",
+                        channel: "web",
+                        certificateColor: "cima-jaune",
+                        premiumRC: 25000,
+                        vehicleEnergy: "SEDI",
+                        vehicleChassisNumber: "VF1KM0B0H58123456",
+                        vehicleModel: "TOYOTA CAMRY 2023",
+                        vehicleGenre: "GV01",
+                        vehicleCategory: "01",
+                        vehicleUsage: "UV01",
+                        vehicleBrand: "FIAT",
+                        vehicleType: "TV01",
+                        vehicleSeats: 5,
+                        subscriberType: "ST01",
+                        subscriberPhone: "+237690123456",
+                        subscriberPoBox: "BP 1234",
+                        subscriberEmail: "souscripteur@example.com",
+                        subscriberName: "MARTIN DUPONT",
+                        insuredPhone: "+237691234567",
+                        insuredPoBox: "BP 5678",
+                        insuredName: "JEAN MARTIN",
+                        insuredEmail: "assure@example.com",
+                        vehicleRegistrationNumber: "LT-123-AK",
+                        policyEffectiveDate: "2028-07-10",
+                        policyExpiryDate: "2029-07-09",
+                        vehicleFiscalPower: 8,
+                        vehicleUsefulLoad: 500,
+                        fleetReduction: 6,
+                        rNum: 1,
+                        opATD: null
+                    }]
+                }
+            };
 
             if (response.data?.data && response.data.data.length > 0) {
                 const policy = response.data.data[0];
                 setPolicyData(policy);
                 setActiveIndex(1);
                 showSuccess('Policy found successfully!');
-
-                // Pre-fill some form fields if available in policy data
-                setEditionForm(prev => ({
-                    ...prev,
-                    organizationCode: policy.organizationCode || '',
-                    officeCode: policy.officeCode || ''
-                }));
             } else {
                 showError('No policy found with the provided details');
             }
@@ -167,37 +124,30 @@ const CreateEdition = () => {
             return;
         }
 
-        if (!editionForm.certificateColor) {
-            showError('Please select a certificate color');
-            return;
-        }
-
         setLoading(true);
+        setValidationErrors({});
+
         try {
-            // Map policy data to edition request format
+            // Create edition request using policy data directly
             const editionRequest = {
                 policyNumber: policyData.policyNumber || searchForm.policyNumber,
-                organizationCode: editionForm.organizationCode,
-                officeCode: editionForm.officeCode,
-                certificateType: editionForm.certificateType,
+                organizationCode: policyData.organizationCode,
+                officeCode: policyData.officeCode,
+                certificateType: policyData.certificateType,
                 emailNotification: editionForm.emailNotification,
-                generatedBy: editionForm.generatedBy || 'Web Interface',
-                channel: editionForm.channel,
-                certificateColor: editionForm.certificateColor,
+                generatedBy: policyData.generatedBy || 'Web Interface',
+                channel: policyData.channel || 'web',
+                certificateColor: policyData.certificateColor,
 
-                // Subscriber Information
+                // All other fields come from policy data
                 subscriberName: policyData.subscriberName || '',
                 subscriberPhone: policyData.subscriberPhone || '',
                 subscriberEmail: policyData.subscriberEmail || '',
                 subscriberPoBox: policyData.subscriberPoBox || '',
-
-                // Insured Information
                 insuredName: policyData.insuredName || policyData.subscriberName || '',
                 insuredPhone: policyData.insuredPhone || policyData.subscriberPhone || '',
                 insuredEmail: policyData.insuredEmail || policyData.subscriberEmail || '',
                 insuredPoBox: policyData.insuredPoBox || policyData.subscriberPoBox || '',
-
-                // Vehicle Information
                 vehicleRegistrationNumber: policyData.vehicleRegistrationNumber || '',
                 vehicleChassisNumber: policyData.vehicleChassisNumber || '',
                 vehicleBrand: policyData.vehicleBrand || '',
@@ -221,31 +171,67 @@ const CreateEdition = () => {
 
             const response = await apiService.createEditionRequest(editionRequest);
 
-            showSuccess('Edition request created successfully!');
-
-            // Reset form and go back to step 1
-            setActiveIndex(0);
-            setPolicyData(null);
-            setSearchForm({
-                policyNumber: '',
-                endorsementNumber: '',
-                applicantCode: ''
-            });
-            setEditionForm({
-                organizationCode: '',
-                officeCode: '',
-                certificateType: 'cima',
-                certificateColor: '',
-                emailNotification: '',
-                generatedBy: '',
-                channel: 'web'
-            });
+            // Set success data and show a dialog
+            setEditionResult(response.data);
+            setSuccessDialog(true);
 
         } catch (error) {
-            showError(error.response?.data?.message || 'Failed to create edition request');
+            // Handle validation errors
+            if (error.response?.status === 400 && error.response?.data?.details?.validationErrors) {
+                const errors = error.response.data.details.validationErrors;
+                setValidationErrors(errors);
+
+                // Show the first few validation errors in toast
+                const errorMessages = Object.entries(errors).slice(0, 3).map(([field, message]) =>
+                    `${field}: ${message}`
+                ).join('\n');
+
+                showError(`Validation errors:\n${errorMessages}`);
+            }
+            else if (error.response?.status === 422 && error.response?.data?.details) {
+                const errorMessage = error.response.data.details;
+                showError(`Validation errors:\n${errorMessage}`);
+            }
+            // Handling axios response errors
+            else if (error.response?.status === 422) {
+                const errorMessage =
+                    error.response.data?.message ||
+                    error.response.data?.detail ||
+                    'An external service validation error occurred (422).';
+                showError(`External service error:\n${errorMessage}`);
+            }
+            else {
+                showError(error.response?.data?.message || 'Failed to create edition request');
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDownloadCertificate = async (downloadLink) => {
+        try {
+            // Open download link in new tab
+            window.open(downloadLink, '_blank');
+            showSuccess('Certificate download initiated');
+        } catch (error) {
+            showError('Failed to download certificate');
+        }
+    };
+
+    const resetForm = () => {
+        setActiveIndex(0);
+        setPolicyData(null);
+        setValidationErrors({});
+        setEditionResult(null);
+        setSuccessDialog(false);
+        setSearchForm({
+            policyNumber: '',
+            endorsementNumber: '',
+            applicantCode: ''
+        });
+        setEditionForm({
+            emailNotification: ''
+        });
     };
 
     const formatPolicyData = (data) => {
@@ -253,6 +239,10 @@ const CreateEdition = () => {
 
         return {
             'Policy Number': data.policyNumber || 'N/A',
+            'Organization Code': data.organizationCode || 'N/A',
+            'Office Code': data.officeCode || 'N/A',
+            'Certificate Type': data.certificateType || 'N/A',
+            'Certificate Color': data.certificateColor || 'N/A',
             'Subscriber Name': data.subscriberName || 'N/A',
             'Vehicle Registration': data.vehicleRegistrationNumber || 'N/A',
             'Vehicle Brand': data.vehicleBrand || 'N/A',
@@ -329,104 +319,114 @@ const CreateEdition = () => {
         </Card>
     );
 
-    // Step 2: Configure Edition
+    // Step 2: Configure Edition - Only notification field editable
     const renderConfigureStep = () => (
         <div className="grid">
             <div className="col-12 lg:col-8">
                 <Card title="Edition Configuration" className="create-edition-card h-full">
+                    {/* Validation Errors Display */}
+                    {Object.keys(validationErrors).length > 0 && (
+                        <Panel header="Validation Errors" className="mb-4" toggleable>
+                            <div className="validation-errors">
+                                {Object.entries(validationErrors).map(([field, message]) => (
+                                    <Message
+                                        key={field}
+                                        severity="error"
+                                        text={`${field}: ${message}`}
+                                        className="mb-2"
+                                    />
+                                ))}
+                            </div>
+                        </Panel>
+                    )}
+
                     <div className="grid">
+                        {/* Read-only fields from policy data */}
                         <div className="col-12 md:col-6">
                             <div className="field">
-                                <label htmlFor="organizationCode" className="block text-900 font-medium mb-2">
-                                    Organization Code *
+                                <label className="block text-900 font-medium mb-2">
+                                    Organization Code
                                 </label>
                                 <InputText
-                                    id="organizationCode"
-                                    value={editionForm.organizationCode}
-                                    onChange={(e) => setEditionForm(prev => ({ ...prev, organizationCode: e.target.value }))}
-                                    placeholder="Enter organization code"
+                                    value={policyData?.organizationCode || ''}
                                     className="w-full"
+                                    disabled
                                 />
+                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
                         <div className="col-12 md:col-6">
                             <div className="field">
-                                <label htmlFor="officeCode" className="block text-900 font-medium mb-2">
-                                    Office Code *
+                                <label className="block text-900 font-medium mb-2">
+                                    Office Code
                                 </label>
                                 <InputText
-                                    id="officeCode"
-                                    value={editionForm.officeCode}
-                                    onChange={(e) => setEditionForm(prev => ({ ...prev, officeCode: e.target.value }))}
-                                    placeholder="Enter office code"
+                                    value={policyData?.officeCode || ''}
                                     className="w-full"
+                                    disabled
                                 />
+                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
                         <div className="col-12 md:col-6">
                             <div className="field">
-                                <label htmlFor="certificateType" className="block text-900 font-medium mb-2">
-                                    Certificate Type *
+                                <label className="block text-900 font-medium mb-2">
+                                    Certificate Type
                                 </label>
-                                <Dropdown
-                                    id="certificateType"
-                                    value={editionForm.certificateType}
-                                    options={certificateTypes}
-                                    onChange={(e) => setEditionForm(prev => ({ ...prev, certificateType: e.value }))}
-                                    placeholder="Select certificate type"
+                                <InputText
+                                    value={policyData?.certificateType?.toUpperCase() || ''}
                                     className="w-full"
+                                    disabled
                                 />
+                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
                         <div className="col-12 md:col-6">
                             <div className="field">
-                                <label htmlFor="certificateColor" className="block text-900 font-medium mb-2">
-                                    Certificate Color *
+                                <label className="block text-900 font-medium mb-2">
+                                    Certificate Color
                                 </label>
-                                <Dropdown
-                                    id="certificateColor"
-                                    value={editionForm.certificateColor}
-                                    options={certificateColors}
-                                    onChange={(e) => setEditionForm(prev => ({ ...prev, certificateColor: e.value }))}
-                                    placeholder="Select certificate color"
+                                <InputText
+                                    value={policyData?.certificateColor || ''}
                                     className="w-full"
+                                    disabled
                                 />
+                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
                         <div className="col-12 md:col-6">
                             <div className="field">
-                                <label htmlFor="channel" className="block text-900 font-medium mb-2">
+                                <label className="block text-900 font-medium mb-2">
                                     Channel
                                 </label>
-                                <Dropdown
-                                    id="channel"
-                                    value={editionForm.channel}
-                                    options={channelTypes}
-                                    onChange={(e) => setEditionForm(prev => ({ ...prev, channel: e.value }))}
+                                <InputText
+                                    value={policyData?.channel || 'web'}
                                     className="w-full"
+                                    disabled
                                 />
+                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
                         <div className="col-12 md:col-6">
                             <div className="field">
-                                <label htmlFor="generatedBy" className="block text-900 font-medium mb-2">
+                                <label className="block text-900 font-medium mb-2">
                                     Generated By
                                 </label>
                                 <InputText
-                                    id="generatedBy"
-                                    value={editionForm.generatedBy}
-                                    onChange={(e) => setEditionForm(prev => ({ ...prev, generatedBy: e.target.value }))}
-                                    placeholder="Enter generator name"
+                                    value={policyData?.generatedBy || 'Web Interface'}
                                     className="w-full"
+                                    disabled
                                 />
+                                <small className="text-500">From policy data</small>
                             </div>
                         </div>
 
+                        {/* Only editable field */}
                         <div className="col-12">
                             <div className="field">
                                 <label htmlFor="emailNotification" className="block text-900 font-medium mb-2">
@@ -440,6 +440,7 @@ const CreateEdition = () => {
                                     placeholder="Enter notification email"
                                     className="w-full"
                                 />
+                                <small className="text-500">This is the only editable field</small>
                             </div>
                         </div>
                     </div>
@@ -474,23 +475,23 @@ const CreateEdition = () => {
                     <div className="review-section">
                         <div className="field">
                             <span className="font-medium">Organization Code:</span>
-                            <span className="ml-2">{editionForm.organizationCode}</span>
+                            <span className="ml-2">{policyData?.organizationCode}</span>
                         </div>
                         <div className="field">
                             <span className="font-medium">Office Code:</span>
-                            <span className="ml-2">{editionForm.officeCode}</span>
+                            <span className="ml-2">{policyData?.officeCode}</span>
                         </div>
                         <div className="field">
                             <span className="font-medium">Certificate Type:</span>
-                            <Tag value={editionForm.certificateType.toUpperCase()} className="ml-2" />
+                            <Tag value={policyData?.certificateType?.toUpperCase()} className="ml-2" />
                         </div>
                         <div className="field">
                             <span className="font-medium">Certificate Color:</span>
-                            <Tag value={editionForm.certificateColor} severity="info" className="ml-2" />
+                            <Tag value={policyData?.certificateColor} severity="info" className="ml-2" />
                         </div>
                         <div className="field">
                             <span className="font-medium">Channel:</span>
-                            <span className="ml-2">{editionForm.channel}</span>
+                            <span className="ml-2">{policyData?.channel || 'web'}</span>
                         </div>
                         {editionForm.emailNotification && (
                             <div className="field">
@@ -533,6 +534,120 @@ const CreateEdition = () => {
         </Card>
     );
 
+    // Success Dialog with Certificate Preview
+    const renderSuccessDialog = () => {
+        const certificate = editionResult?.data?.asaciResult?.data?.certificates?.[0];
+
+        return (
+            <Dialog
+                header="Certificate Created Successfully"
+                visible={successDialog}
+                style={{ width: '600px' }}
+                modal
+                onHide={() => setSuccessDialog(false)}
+                footer={
+                    <div className="flex justify-content-between">
+                        <Button
+                            label="Create Another"
+                            icon="pi pi-plus"
+                            className="p-button-outlined"
+                            onClick={() => {
+                                setSuccessDialog(false);
+                                resetForm();
+                            }}
+                        />
+                        <div className="flex gap-2">
+                            {certificate?.download_link && (
+                                <Button
+                                    label="Download Certificate"
+                                    icon="pi pi-download"
+                                    onClick={() => handleDownloadCertificate(certificate.download_link)}
+                                />
+                            )}
+                            <Button
+                                label="Close"
+                                icon="pi pi-times"
+                                className="p-button-outlined"
+                                onClick={() => {
+                                    setSuccessDialog(false);
+                                    navigate('/dashboard');
+                                }}
+                            />
+                        </div>
+                    </div>
+                }
+            >
+                {certificate && (
+                    <div className="certificate-preview">
+                        <div className="success-message mb-4">
+                            <Message severity="success" text={editionResult?.message || 'Certificate created successfully'} />
+                        </div>
+
+                        <Card title="Certificate Details" className="mb-4">
+                            <div className="grid">
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">Reference:</label>
+                                        <span className="text-900 font-bold">{certificate.reference}</span>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">State:</label>
+                                        <Tag value={certificate.state?.label} severity="success" />
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">Insured Name:</label>
+                                        <span className="text-900">{certificate.insured_name}</span>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">License Plate:</label>
+                                        <span className="text-900">{certificate.licence_plate}</span>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">Policy Number:</label>
+                                        <span className="text-900">{certificate.police_number}</span>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">Chassis Number:</label>
+                                        <span className="text-900">{certificate.chassis_number}</span>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">Valid From:</label>
+                                        <span className="text-900">{certificate.starts_at}</span>
+                                    </div>
+                                </div>
+                                <div className="col-12 md:col-6">
+                                    <div className="field">
+                                        <label className="block text-600 font-medium mb-1">Valid Until:</label>
+                                        <span className="text-900">{certificate.ends_at}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <div className="download-info">
+                            <Message
+                                severity="info"
+                                text="Click 'Download Certificate' to download the PDF certificate. The certificate is now active and can be used immediately."
+                            />
+                        </div>
+                    </div>
+                )}
+            </Dialog>
+        );
+    };
+
     return (
         <div className="create-edition">
             <div className="create-edition-header mb-4">
@@ -563,10 +678,12 @@ const CreateEdition = () => {
                         icon="pi pi-arrow-right"
                         iconPos="right"
                         onClick={() => setActiveIndex(2)}
-                        disabled={!editionForm.organizationCode || !editionForm.officeCode || !editionForm.certificateColor}
+                        disabled={!policyData}
                     />
                 </div>
             )}
+
+            {renderSuccessDialog()}
         </div>
     );
 };
