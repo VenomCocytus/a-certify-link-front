@@ -1,5 +1,6 @@
 .create-edition {
     padding: 0;
+    position: relative;
 }
 
 .create-edition-header {
@@ -20,13 +21,19 @@
 .create-edition-steps {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
     background: var(--surface-ground, #ffffff);
     padding: 1rem 0;
     margin-bottom: 2rem;
     border-bottom: 1px solid var(--surface-border, #e9ecef);
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.create-edition-steps .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .create-edition-steps .p-steps {

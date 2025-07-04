@@ -1038,7 +1038,7 @@ const CreateEdition = () => {
                 <p className="text-600">Create a new certificate edition request from ORASS policy data</p>
             </div>
 
-            <div className="create-edition-steps mb-4">
+            <div className="container"> {/* Added container wrapper */}
                 <Steps model={steps} activeIndex={activeIndex} className="mb-4" />
             </div>
 
