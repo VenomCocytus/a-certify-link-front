@@ -71,7 +71,7 @@ export const apiService = {
         apiClient.put('/auth/profile', profileData),
 
     changePassword: (passwordData) =>
-        apiClient.put('/auth/change-password', passwordData),
+        apiClient.post('/auth/change-password', passwordData),
 
     refreshToken: () =>
         apiClient.post('/auth/refresh-token'),
@@ -90,7 +90,7 @@ export const apiService = {
         apiClient.get('/certify-link/policies/search', { params: searchParams }),
 
     createEditionRequest: (editionData) =>
-        apiClient.post('/certify-link/certificates/production', editionData),
+        apiClient.post('/certify-link/edition-requests/production', editionData),
 
     getCertificateColors: () =>
         apiClient.get('/certify-link/certificate-colors'),
@@ -98,35 +98,27 @@ export const apiService = {
     getCertificates: (params = {}) =>
         apiClient.get('/certify-link/attestations', { params }),
 
-    // **NEW**: Get certificate details by reference
-    getCertificateDetails: (reference) =>
-        apiClient.get(`/certificates/${reference}`),
-
-    // **NEW**: Get related certificate details
-    getRelatedCertificateDetails: (reference) =>
-        apiClient.get(`/certificates/related/${reference}`),
-
     getCertificateTypes: () =>
         apiClient.get('/certificate-types'),
 
     downloadCertificateLinkFromDb: (reference) =>
-        apiClient.get(`/certify-link/certificates/${reference}/download-link`),
+        apiClient.get(`/certify-link/edition-requests/${reference}/download-link`),
 
     downloadCertificateExternal: (reference) =>
-        apiClient.post(`/certify-link/certificates/${reference}/download`, { responseType: 'blob' }),
+        apiClient.post(`/certify-link/edition-requests/${reference}/download`, { responseType: 'blob' }),
 
     cancelCertificate: (reference, reason) =>
-        apiClient.post(`/certificates/${reference}/cancel`, { reason }),
+        apiClient.post(`/edition-requests/${reference}/cancel`, { reason }),
 
     suspendCertificate: (reference, reason) =>
-        apiClient.post(`/certificates/${reference}/suspend`, { reason }),
+        apiClient.post(`/edition-requests/${reference}/suspend`, { reason }),
 
     // Statistics endpoints
     getCertificateStats: () =>
-        apiClient.get('/certificates/statistics/usage'),
+        apiClient.get('/edition-requests/statistics/usage'),
 
     getAvailableStats: () =>
-        apiClient.get('/certificates/statistic/available'),
+        apiClient.get('/edition-requests/statistic/available'),
 
     getUsedStats: () =>
         apiClient.get('/certificates/statistic/used')

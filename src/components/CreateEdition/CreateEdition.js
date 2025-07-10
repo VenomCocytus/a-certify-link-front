@@ -129,9 +129,9 @@ const CreateEdition = () => {
 
         try {
             const response = await apiService.searchOrassPolicies({
-                policyNumber: searchForm.policyNumber,
-                endorsementNumber: searchForm.endorsementNumber,
-                applicantCode: searchForm.applicantCode,
+                policyNumber: searchForm.policyNumber.trim(),
+                endorsementNumber: searchForm.endorsementNumber.trim(),
+                applicantCode: searchForm.applicantCode.trim(),
                 limit: 1
             });
             console.log(response);
@@ -292,6 +292,7 @@ const CreateEdition = () => {
             // Open download link in new tab
             window.open(downloadLink, '_blank');
             showSuccess('Certificate download initiated');
+            navigate('/dashboard')
         } catch (error) {
             showError('Failed to download certificate');
         }
@@ -362,6 +363,21 @@ const CreateEdition = () => {
             <div className="grid">
                 <div className="col-12 md:col-4">
                     <div className="field">
+                        <label htmlFor="applicantCode" className="block text-900 font-medium mb-2">
+                            Applicant Code *
+                        </label>
+                        <InputText
+                            id="applicantCode"
+                            value={searchForm.applicantCode}
+                            onChange={(e) => setSearchForm(prev => ({ ...prev, applicantCode: e.target.value }))}
+                            placeholder="Enter applicant code"
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+
+                <div className="col-12 md:col-4">
+                    <div className="field">
                         <label htmlFor="policyNumber" className="block text-900 font-medium mb-2">
                             Policy Number *
                         </label>
@@ -385,21 +401,6 @@ const CreateEdition = () => {
                             value={searchForm.endorsementNumber}
                             onChange={(e) => setSearchForm(prev => ({ ...prev, endorsementNumber: e.target.value }))}
                             placeholder="Enter endorsement number"
-                            className="w-full"
-                        />
-                    </div>
-                </div>
-
-                <div className="col-12 md:col-4">
-                    <div className="field">
-                        <label htmlFor="applicantCode" className="block text-900 font-medium mb-2">
-                            Applicant Code *
-                        </label>
-                        <InputText
-                            id="applicantCode"
-                            value={searchForm.applicantCode}
-                            onChange={(e) => setSearchForm(prev => ({ ...prev, applicantCode: e.target.value }))}
-                            placeholder="Enter applicant code"
                             className="w-full"
                         />
                     </div>
