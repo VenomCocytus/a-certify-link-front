@@ -85,18 +85,14 @@ export const apiService = {
     resetPassword: (resetData) =>
         apiClient.post('/auth/reset-password', resetData),
 
-    // ORASS/CertifyLink endpoints
     searchOrassPolicies: (searchParams) =>
         apiClient.get('/certify-link/policies/search', { params: searchParams }),
 
     createEditionRequest: (editionData) =>
         apiClient.post('/certify-link/edition-requests/production', editionData),
 
-    getCertificateColors: () =>
-        apiClient.get('/certify-link/certificate-colors'),
-
     getCertificates: (params = {}) =>
-        apiClient.get('/certify-link/attestations', { params }),
+        apiClient.get('/certify-link/edition-requests', { params }),
 
     getCertificateTypes: () =>
         apiClient.get('/certificate-types'),
@@ -108,10 +104,10 @@ export const apiService = {
         apiClient.post(`/certify-link/edition-requests/${reference}/download`, { responseType: 'blob' }),
 
     cancelCertificate: (reference, reason) =>
-        apiClient.post(`/edition-requests/${reference}/cancel`, { reason }),
+        apiClient.post(`/asaci/edition-requests/${reference}/cancel`, { reason }),
 
     suspendCertificate: (reference, reason) =>
-        apiClient.post(`/edition-requests/${reference}/suspend`, { reason }),
+        apiClient.post(`/asaci/edition-requests/${reference}/suspend`, { reason }),
 
     // Statistics endpoints
     getCertificateStats: () =>
@@ -121,5 +117,5 @@ export const apiService = {
         apiClient.get('/edition-requests/statistic/available'),
 
     getUsedStats: () =>
-        apiClient.get('/certificates/statistic/used')
+        apiClient.get('/edition-requests/statistic/used')
 };
