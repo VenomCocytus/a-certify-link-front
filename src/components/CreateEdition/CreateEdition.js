@@ -128,56 +128,56 @@ const CreateEdition = () => {
         setValidationErrors({});
 
         try {
-            // const response = await apiService.searchOrassPolicies({
-            //     policyNumber: searchForm.policyNumber.trim(),
-            //     endorsementNumber: searchForm.endorsementNumber.trim(),
-            //     applicantCode: searchForm.applicantCode.trim(),
-            //     limit: 1
-            // });
-            // console.log(response);
+            const response = await apiService.searchOrassPolicies({
+                policyNumber: searchForm.policyNumber.trim(),
+                endorsementNumber: searchForm.endorsementNumber.trim(),
+                applicantCode: searchForm.applicantCode.trim(),
+                limit: 1
+            });
+            console.log(response);
 
             // Mocked response as requested
-            const response = {
-                data: {
-                    data: [{
-                        policyNumber: "1006310001640",
-                        officeCode: "ASACI_ACTIVA_1001", //Changed
-                        organizationCode: "ASACI_ACTIVA",
-                        certificateType: "cima",
-                        emailNotification: "notifications@example.com",
-                        generatedBy: "01JYM40ESBJPFHY4AVJBTXVJVE",
-                        channel: "api",
-                        certificateColor: "cima-jaune",
-                        premiumRC: 25000,
-                        vehicleEnergy: "SEES",
-                        vehicleChassisNumber: "4445h",
-                        vehicleModel: "MODEL",
-                        vehicleGenre: "GV04",
-                        vehicleCategory: "01",
-                        vehicleUsage: "UV01",
-                        vehicleBrand: "FIAT",
-                        vehicleType: "TV10",
-                        vehicleSeats: 5,
-                        subscriberType: "TSPP",
-                        subscriberPhone: "+2370505880215",
-                        subscriberPoBox: "+237693082941",
-                        subscriberEmail: "wy.kouadio@gmail.com",
-                        subscriberName: "Usertest Enca",
-                        insuredPhone: "+2370505880215",
-                        insuredPoBox: "+237693082941",
-                        insuredName: "Usertest Enca",
-                        insuredEmail: "wy.kouadio@gmail.com",
-                        vehicleRegistrationNumber: "4445h",
-                        policyEffectiveDate: "2025-07-14",
-                        policyExpiryDate: "2025-08-15",
-                        vehicleFiscalPower: 9,
-                        vehicleUsefulLoad: 0,
-                        fleetReduction: 0,
-                        rNum: 1,
-                        opATD: null
-                    }]
-                }
-            };
+            // const response = {
+            //     data: {
+            //         data: [{
+            //             policyNumber: "1006310001640",
+            //             officeCode: "ASACI_ACTIVA_1001", //Changed
+            //             organizationCode: "ASACI_ACTIVA",
+            //             certificateType: "cima",
+            //             emailNotification: "notifications@example.com",
+            //             generatedBy: "01JYM40ESBJPFHY4AVJBTXVJVE",
+            //             channel: "api",
+            //             certificateColor: "cima-jaune",
+            //             premiumRC: 25000,
+            //             vehicleEnergy: "SEES",
+            //             vehicleChassisNumber: "4445h",
+            //             vehicleModel: "MODEL",
+            //             vehicleGenre: "GV04",
+            //             vehicleCategory: "01",
+            //             vehicleUsage: "UV01",
+            //             vehicleBrand: "FIAT",
+            //             vehicleType: "TV10",
+            //             vehicleSeats: 5,
+            //             subscriberType: "TSPP",
+            //             subscriberPhone: "+2370505880215",
+            //             subscriberPoBox: "+237693082941",
+            //             subscriberEmail: "wy.kouadio@gmail.com",
+            //             subscriberName: "Usertest Enca",
+            //             insuredPhone: "+2370505880215",
+            //             insuredPoBox: "+237693082941",
+            //             insuredName: "Usertest Enca",
+            //             insuredEmail: "wy.kouadio@gmail.com",
+            //             vehicleRegistrationNumber: "4445h",
+            //             policyEffectiveDate: "2025-07-14",
+            //             policyExpiryDate: "2025-08-15",
+            //             vehicleFiscalPower: 9,
+            //             vehicleUsefulLoad: 0,
+            //             fleetReduction: 0,
+            //             rNum: 1,
+            //             opATD: null
+            //         }]
+            //     }
+            // };
 
             if (response.data?.data && response.data.data.length > 0) {
                 const policy = response.data.data[0];
@@ -201,6 +201,10 @@ const CreateEdition = () => {
         }
         setLoading(true);
         setValidationErrors({});
+        console.log(
+            "International Format",
+            editionForm.subscriberPhone
+        )
 
         try {
             // Create edition request using a combination of policy data and editable form data
@@ -216,7 +220,7 @@ const CreateEdition = () => {
 
                 // Use form values for editable fields, fallback to policy data
                 subscriberName: editionForm.subscriberName || policyData.subscriberName,
-                subscriberPhone: editionForm.subscriberPhone || policyData.subscriberPhone ,
+                subscriberPhone: editionForm.subscriberPhone || policyData.subscriberPhone,
                 subscriberEmail: editionForm.subscriberEmail || policyData.subscriberEmail,
                 subscriberPoBox: editionForm.subscriberPoBox || policyData.subscriberPoBox,
                 insuredName: editionForm.insuredName || policyData.insuredName || editionForm.subscriberName || policyData.subscriberName,
