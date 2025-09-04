@@ -2,7 +2,7 @@
 
 // API Configuration
 export const API_CONFIG = {
-    BASE_URL: process.env.REACT_APP_API_BASE_URL || '/api',
+    BASE_URL: process.env.REACT_APP_API_BASE_URL || '/api/v1',
     TIMEOUT: parseInt(process.env.REACT_APP_API_TIMEOUT) || 30000,
     RETRY_ATTEMPTS: 3,
     RETRY_DELAY: 1000

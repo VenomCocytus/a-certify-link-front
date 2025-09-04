@@ -86,14 +86,20 @@ const Register = () => {
         setLoading(true);
 
         try {
-            const result = await register({
+            // Prepare payload without confirmPassword (frontend validation only)
+            const registrationPayload = {
                 email: formData.email,
                 firstName: formData.firstName,
                 lastName: formData.lastName,
-                phoneNumber: formData.phoneNumber || undefined,
-                password: formData.password,
-                confirmPassword: formData.confirmPassword
-            });
+                password: formData.password
+            };
+
+            // Only include phoneNumber if it's not empty
+            if (formData.phoneNumber && formData.phoneNumber.trim()) {
+                registrationPayload.phoneNumber = formData.phoneNumber.trim();
+            }
+
+            const result = await register(registrationPayload);
 
             if (result.success) {
                 showSuccess(result.message || 'Registration successful! Welcome to eAttestation Platform.');

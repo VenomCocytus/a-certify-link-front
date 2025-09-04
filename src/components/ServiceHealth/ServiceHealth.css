@@ -1,0 +1,28 @@
+.service-health {
+    padding: 0.75rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    background: var(--surface-ground);
+    margin-bottom: 1rem;
+}
+
+.service-status-tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.service-health i.pi-check-circle {
+    color: var(--green-500);
+}
+
+.service-health i.pi-exclamation-triangle {
+    color: var(--orange-500);
+}
+
+.service-health i.pi-times-circle {
+    color: var(--red-500);
+}
+
+.service-health i.pi-spinner {
+    color: var(--blue-500);
+}

@@ -10,6 +10,7 @@ import { Skeleton } from 'primereact/skeleton';
 import CertificateFilter from '../Certificate/CertificateFilter';
 import CertificateDetails from '../Certificate/CertificateDetails';
 import StatisticsCards from '../Statistics/StatisticsCards';
+import ServiceHealth from '../ServiceHealth/ServiceHealth';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../../contexts/ToastContext';
 import './Dashboard.css';
@@ -79,22 +80,54 @@ const Dashboard = () => {
 
     // Memoize the fetchStatistics function
     const fetchStatistics = useCallback(async () => {
+        console.log('Dashboard: Attempting to fetch statistics from ASACI');
+        
         try {
             const [usage, available, used] = await Promise.all([
-                apiService.getCertificateStats().catch(() => null),
-                apiService.getAvailableStats().catch(() => null),
-                apiService.getUsedStats().catch(() => null)
+                apiService.getCertificateStats().catch(err => {
+                    console.warn('Dashboard: getCertificateStats failed:', err.response?.status);
+                    return null;
+                }),
+                apiService.getAvailableStats().catch(err => {
+                    console.warn('Dashboard: getAvailableStats failed:', err.response?.status);
+                    return null;
+                }),
+                apiService.getUsedStats().catch(err => {
+                    console.warn('Dashboard: getUsedStats failed:', err.response?.status);
+                    return null;
+                })
             ]);
 
-            return {
-                usage: usage?.data || { total: 0, thisMonth: 0 },
-                available: available?.data || { total: 0 },
-                used: used?.data || { total: 0, thisMonth: 0 }
-            };
+            const hasAnyData = usage || available || used;
+            
+            if (hasAnyData) {
+                console.log('Dashboard: Some statistics retrieved from ASACI');
+                return {
+                    usage: usage?.data || { total: 0, thisMonth: 0 },
+                    available: available?.data || { total: 0 },
+                    used: used?.data || { total: 0, thisMonth: 0 },
+                    isAsaciData: true,
+                    hasPartialData: !usage || !available || !used
+                };
+            } else {
+                console.warn('Dashboard: All ASACI statistics failed, using mock data');
+                showError('ASACI services unavailable. Showing sample data.');
+                return {
+                    ...generateMockStatistics(),
+                    isAsaciData: false,
+                    hasPartialData: false
+                };
+            }
         } catch (error) {
-            return generateMockStatistics();
+            console.error('Dashboard: Statistics fetch error:', error);
+            showError('Unable to load statistics. Showing sample data.');
+            return {
+                ...generateMockStatistics(),
+                isAsaciData: false,
+                hasPartialData: false
+            };
         }
-    }, [generateMockStatistics]);
+    }, [generateMockStatistics, showError]);
 
     // Memoize the generateChartData function
     const generateChartData = useCallback((stats) => {
@@ -126,30 +159,62 @@ const Dashboard = () => {
     // Memoize the fetchDashboardData function
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
+        console.log('Dashboard: Starting dashboard data fetch');
+        
         try {
             const [certsResponse, statsResponse] = await Promise.allSettled([
                 apiService.getCertificates(),
                 fetchStatistics()
             ]);
 
+            // Handle certificates data
             if (certsResponse.status === 'fulfilled') {
+                console.log('Dashboard: Certificates API response:', certsResponse.value.data);
+                
                 const certsData = certsResponse.value.data;
-                const certificatesData = Array.isArray(certsData) ? certsData : certsData.data || [];
+                let certificatesData = [];
+                
+                // Handle different response structures
+                if (Array.isArray(certsData)) {
+                    certificatesData = certsData;
+                } else if (certsData && certsData.data.result.data && Array.isArray(certsData.data.result.data)) {
+                    certificatesData = certsData.data.result.data;
+                } else {
+                    console.warn('Dashboard: Unexpected certificates response structure:', certsData);
+                    certificatesData = [];
+                }
+                
+                console.log(`Dashboard: Loaded ${certificatesData.length} certificates`);
                 setCertificates(certificatesData);
             } else {
+                console.warn('Dashboard: Certificates API failed:', certsResponse.reason);
+                showError('Unable to load certificates. Showing sample data.');
                 setCertificates(generateMockCertificates());
             }
 
+            // Handle statistics data
             if (statsResponse.status === 'fulfilled') {
-                setStatistics(statsResponse.value);
-                generateChartData(statsResponse.value);
+                console.log('Dashboard: Statistics loaded successfully');
+                const stats = statsResponse.value;
+                setStatistics(stats);
+                generateChartData(stats);
+                
+                // Show warning if using mock data or partial data
+                if (!stats.isAsaciData) {
+                    console.log('Dashboard: Using mock statistics data');
+                } else if (stats.hasPartialData) {
+                    showError('Some statistics unavailable from ASACI services.');
+                }
             } else {
+                console.warn('Dashboard: Statistics fetch failed:', statsResponse.reason);
                 const mockStats = generateMockStatistics();
                 setStatistics(mockStats);
                 generateChartData(mockStats);
+                showError('Unable to load statistics. Showing sample data.');
             }
 
         } catch (error) {
+            console.error('Dashboard: Unexpected error during data fetch:', error);
             showError('Failed to load dashboard data');
             setCertificates(generateMockCertificates());
             const mockStats = generateMockStatistics();
@@ -157,6 +222,7 @@ const Dashboard = () => {
             generateChartData(mockStats);
         } finally {
             setLoading(false);
+            console.log('Dashboard: Data fetch completed');
         }
     }, [fetchStatistics, generateMockCertificates, generateMockStatistics, generateChartData, showError]);
 
@@ -413,6 +479,9 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard">
+            {/* Service Health Indicator */}
+            <ServiceHealth statistics={statistics} />
+            
             {/* Statistics Cards */}
             {renderStatisticsCards()}
 

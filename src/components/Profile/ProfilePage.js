@@ -10,6 +10,7 @@ import { TabView, TabPanel } from 'primereact/tabview';
 import { FileUpload } from 'primereact/fileupload';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { Validator } from '../../utils/validation';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -55,57 +56,39 @@ const ProfilePage = () => {
     }, [displayUser]);
 
     const validateProfileForm = () => {
-        const errors = {};
+        const validator = new Validator();
 
-        if (!profileForm.firstName.trim()) {
-            errors.firstName = 'First name is required';
-        } else if (profileForm.firstName.length < 2) {
-            errors.firstName = 'First name must be at least 2 characters';
+        // Validate firstName using centralized validation
+        validator.validateName(profileForm.firstName, 'firstName');
+        
+        // Validate lastName using centralized validation
+        validator.validateName(profileForm.lastName, 'lastName');
+
+        // Validate phoneNumber (optional) using centralized validation
+        if (profileForm.phoneNumber) {
+            validator.validatePhoneNumber(profileForm.phoneNumber, 'phoneNumber');
         }
 
-        if (!profileForm.lastName.trim()) {
-            errors.lastName = 'Last name is required';
-        } else if (profileForm.lastName.length < 2) {
-            errors.lastName = 'Last name must be at least 2 characters';
-        }
-
-        if (!profileForm.email.trim()) {
-            errors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(profileForm.email)) {
-            errors.email = 'Email is invalid';
-        }
-
-        if (profileForm.phoneNumber && profileForm.phoneNumber.length < 10) {
-            errors.phoneNumber = 'Phone number must be at least 10 characters';
-        }
-
+        const errors = validator.getErrors();
         setProfileErrors(errors);
-        return Object.keys(errors).length === 0;
+        return !validator.hasErrors();
     };
 
     const validatePasswordForm = () => {
-        const errors = {};
+        const validator = new Validator();
 
-        if (!passwordForm.currentPassword) {
-            errors.currentPassword = 'Current password is required';
-        }
+        // Validate current password is required
+        validator.validateRequired(passwordForm.currentPassword, 'currentPassword', 'Current password is required');
 
-        if (!passwordForm.newPassword) {
-            errors.newPassword = 'New password is required';
-        } else if (passwordForm.newPassword.length < 8) {
-            errors.newPassword = 'Password must be at least 8 characters';
-        } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(passwordForm.newPassword)) {
-            errors.newPassword = 'Password must contain uppercase, lowercase, number and special character';
-        }
+        // Validate new password using centralized validation
+        validator.validatePassword(passwordForm.newPassword, 'newPassword');
 
-        if (!passwordForm.confirmPassword) {
-            errors.confirmPassword = 'Password confirmation is required';
-        } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            errors.confirmPassword = 'Passwords do not match';
-        }
+        // Validate password confirmation
+        validator.validatePasswordConfirmation(passwordForm.newPassword, passwordForm.confirmPassword, 'confirmPassword');
 
+        const errors = validator.getErrors();
         setPasswordErrors(errors);
-        return Object.keys(errors).length === 0;
+        return !validator.hasErrors();
     };
 
     const handleProfileUpdate = async (e) => {
@@ -118,7 +101,14 @@ const ProfilePage = () => {
         setProfileLoading(true);
 
         try {
-            const result = await updateProfile(profileForm);
+            // Create payload without email (not allowed to change via profile update)
+            const updatePayload = {
+                firstName: profileForm.firstName,
+                lastName: profileForm.lastName,
+                phoneNumber: profileForm.phoneNumber
+            };
+            
+            const result = await updateProfile(updatePayload);
 
             if (result.success) {
                 showSuccess('Profile updated successfully');
@@ -321,19 +311,17 @@ const ProfilePage = () => {
                                         <div className="col-12 md:col-6">
                                             <div className="field">
                                                 <label htmlFor="email" className="block text-900 font-medium mb-2">
-                                                    Email Address *
+                                                    Email Address
                                                 </label>
                                                 <InputText
                                                     id="email"
                                                     type="email"
                                                     value={profileForm.email}
-                                                    onChange={(e) => handleInputChange('profile', setProfileForm, 'email', e.target.value)}
-                                                    className={`w-full ${profileErrors.email ? 'p-invalid' : ''}`}
-                                                    disabled={profileLoading}
+                                                    className="w-full"
+                                                    disabled={true}
+                                                    placeholder="Email cannot be changed"
                                                 />
-                                                {profileErrors.email && (
-                                                    <Message severity="error" text={profileErrors.email} className="mt-1" />
-                                                )}
+                                                <small className="text-600">Contact support to change your email address</small>
                                             </div>
                                         </div>
 

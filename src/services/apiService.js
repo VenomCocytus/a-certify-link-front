@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL - update this to match your backend URL
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api/v1';
+const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3002/api/v1';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -34,20 +34,61 @@ apiClient.interceptors.response.use(
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
+            
+            console.log('ApiService: 401 detected, attempting token refresh');
 
             try {
                 // Try to refresh the token
-                const response = await apiClient.post('/auth/refresh-token');
-                const { accessToken } = response.data;
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (!refreshToken) {
+                    console.warn('ApiService: No refresh token available');
+                    throw new Error('No refresh token available');
+                }
+                
+                console.log('ApiService: Calling refresh token endpoint');
+                const response = await apiClient.post('/auth/refresh-token', {
+                    refreshToken
+                });
+                
+                console.log('ApiService: Refresh token response:', response.data);
 
+                // Validate response structure
+                if (!response.data || !response.data.tokens) {
+                    throw new Error('Invalid refresh response: missing tokens');
+                }
+
+                const { accessToken, refreshToken: newRefreshToken } = response.data.tokens;
+
+                if (!accessToken) {
+                    throw new Error('Invalid refresh response: missing access token');
+                }
+
+                console.log('ApiService: Token refresh successful, updating storage');
                 localStorage.setItem('accessToken', accessToken);
+                if (newRefreshToken) {
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                }
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
+                console.log('ApiService: Retrying original request');
                 return apiClient(originalRequest);
             } catch (refreshError) {
-                // Refresh failed, redirect to the login page
+                console.error('ApiService: Token refresh failed:', {
+                    message: refreshError.message,
+                    response: refreshError.response?.data,
+                    status: refreshError.response?.status
+                });
+
+                // Refresh failed, clear tokens and redirect
                 localStorage.removeItem('accessToken');
-                window.location.href = '/login';
+                localStorage.removeItem('refreshToken');
+                
+                // Only redirect if not already on login page to prevent infinite loops
+                if (!window.location.pathname.includes('/login')) {
+                    console.log('ApiService: Redirecting to login page');
+                    window.location.href = '/login';
+                }
+                
                 return Promise.reject(refreshError);
             }
         }
@@ -68,13 +109,15 @@ export const apiService = {
         apiClient.get('/auth/profile'),
 
     updateProfile: (profileData) =>
-        apiClient.put('/auth/profile', profileData),
+        apiClient.patch('/auth/profile', profileData),
 
     changePassword: (passwordData) =>
         apiClient.post('/auth/change-password', passwordData),
 
-    refreshToken: () =>
-        apiClient.post('/auth/refresh-token'),
+    refreshToken: () => {
+        const refreshToken = localStorage.getItem('refreshToken');
+        return apiClient.post('/auth/refresh-token', { refreshToken });
+    },
 
     logout: (logoutData) =>
         apiClient.post('/auth/logout', logoutData),
@@ -95,7 +138,7 @@ export const apiService = {
         apiClient.get('/certify-link/edition-requests', { params }),
 
     getCertificateTypes: () =>
-        apiClient.get('/certificate-types'),
+        apiClient.get('/asaci/certificate-types'),
 
     downloadCertificateLinkFromDb: (reference) =>
         apiClient.get(`/certify-link/edition-requests/${reference}/download-link`),
@@ -111,11 +154,11 @@ export const apiService = {
 
     // Statistics endpoints
     getCertificateStats: () =>
-        apiClient.get('/edition-requests/statistics/usage'),
+        apiClient.get('/asaci/statistics/edition-requests/usage'),
 
     getAvailableStats: () =>
-        apiClient.get('/edition-requests/statistic/available'),
+        apiClient.get('/asaci/statistics/edition-requests/available'),
 
     getUsedStats: () =>
-        apiClient.get('/edition-requests/statistic/used')
+        apiClient.get('/asaci/statistics/edition-requests/used')
 };
