@@ -9,7 +9,6 @@ import { Chart } from 'primereact/chart';
 import { Skeleton } from 'primereact/skeleton';
 import CertificateFilter from '../Certificate/CertificateFilter';
 import CertificateDetails from '../Certificate/CertificateDetails';
-import StatisticsCards from '../Statistics/StatisticsCards';
 import ServiceHealth from '../ServiceHealth/ServiceHealth';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../../contexts/ToastContext';
@@ -172,7 +171,7 @@ const Dashboard = () => {
                 console.log('Dashboard: Certificates API response:', certsResponse.value.data);
                 
                 const certsData = certsResponse.value.data;
-                let certificatesData = [];
+                let certificatesData;
                 
                 // Handle different response structures
                 if (Array.isArray(certsData)) {

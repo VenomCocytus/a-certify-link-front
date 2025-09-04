@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authService } from '../services/authService';
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {authService} from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -133,8 +133,7 @@ export const AuthProvider = ({ children }) => {
 
     const changePassword = async (passwordData) => {
         try {
-            const response = await authService.changePassword(passwordData);
-            return response;
+            return await authService.changePassword(passwordData);
         } catch (error) {
             return {
                 success: false,
