@@ -1,4 +1,5 @@
 import axios from 'axios';
+import tokenManager from '../utils/tokenManager';
 
 // Base URL - update this to match your backend URL
 const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3002/api/v1';
@@ -12,13 +13,28 @@ const apiClient = axios.create({
     withCredentials: true, // Important for handling HTTP-only cookies
 });
 
-// Request interceptor to add an auth token
+// Request interceptor to add valid auth token
 apiClient.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+    async (config) => {
+        try {
+            // Skip token attachment for auth endpoints that don't need it
+            const isAuthEndpoint = config.url?.includes('/auth/login') || 
+                                 config.url?.includes('/auth/register') || 
+                                 config.url?.includes('/auth/refresh-token') ||
+                                 config.url?.includes('/auth/forgot-password') ||
+                                 config.url?.includes('/auth/reset-password');
+            
+            if (!isAuthEndpoint) {
+                // Get valid token (will refresh if needed)
+                const validToken = await tokenManager.getValidAccessToken();
+                if (validToken) {
+                    config.headers.Authorization = `Bearer ${validToken}`;
+                }
+            }
+        } catch (error) {
+            console.warn('ApiService: Failed to get valid token for request:', error);
         }
+        
         return config;
     },
     (error) => {
@@ -26,51 +42,28 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle errors and token refresh
+// Response interceptor to handle errors
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
+        // Handle 401 errors with token refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             
             console.log('ApiService: 401 detected, attempting token refresh');
 
             try {
-                // Try to refresh the token
-                const refreshToken = localStorage.getItem('refreshToken');
-                if (!refreshToken) {
-                    console.warn('ApiService: No refresh token available');
-                    throw new Error('No refresh token available');
-                }
+                // Use token manager to refresh tokens
+                const newTokens = await tokenManager.refreshToken();
                 
-                console.log('ApiService: Calling refresh token endpoint');
-                const response = await apiClient.post('/auth/refresh-token', {
-                    refreshToken
-                });
+                console.log('ApiService: Token refresh successful, retrying request');
                 
-                console.log('ApiService: Refresh token response:', response.data);
-
-                // Validate response structure
-                if (!response.data || !response.data.tokens) {
-                    throw new Error('Invalid refresh response: missing tokens');
-                }
-
-                const { accessToken, refreshToken: newRefreshToken } = response.data.tokens;
-
-                if (!accessToken) {
-                    throw new Error('Invalid refresh response: missing access token');
-                }
-
-                console.log('ApiService: Token refresh successful, updating storage');
-                localStorage.setItem('accessToken', accessToken);
-                if (newRefreshToken) {
-                    localStorage.setItem('refreshToken', newRefreshToken);
-                }
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-                console.log('ApiService: Retrying original request');
+                // Update authorization header for retry
+                originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
+                
+                // Retry the original request
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 console.error('ApiService: Token refresh failed:', {
@@ -79,10 +72,7 @@ apiClient.interceptors.response.use(
                     status: refreshError.response?.status
                 });
 
-                // Refresh failed, clear tokens and redirect
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                
+                // Tokens are already cleared by tokenManager
                 // Only redirect if not already on login page to prevent infinite loops
                 if (!window.location.pathname.includes('/login')) {
                     console.log('ApiService: Redirecting to login page');

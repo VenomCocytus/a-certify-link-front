@@ -48,20 +48,38 @@ class ErrorBoundary extends React.Component {
         window.location.href = '/dashboard';
     };
 
+    handleGoToLogin = () => {
+        window.location.href = '/login';
+    };
+
+    isAuthError = (error) => {
+        return error?.message?.includes('token') || 
+               error?.message?.includes('auth') ||
+               error?.message?.includes('Unauthorized') ||
+               error?.status === 401 ||
+               error?.response?.status === 401;
+    };
+
     render() {
         if (this.state.hasError) {
             // Custom fallback UI
             const isDevelopment = process.env.NODE_ENV === 'development';
+            const isAuthenticationError = this.isAuthError(this.state.error);
 
             return (
                 <div className="error-boundary-container p-4">
                     <div className="flex justify-content-center align-items-center min-h-screen">
                         <Card className="text-center" style={{ maxWidth: '600px', width: '100%' }}>
                             <div className="mb-4">
-                                <i className="pi pi-exclamation-triangle text-6xl text-red-500 mb-3"></i>
-                                <h2 className="text-2xl font-bold text-900 mb-2">Oops! Something went wrong</h2>
+                                <i className={`pi ${isAuthenticationError ? 'pi-lock' : 'pi-exclamation-triangle'} text-6xl ${isAuthenticationError ? 'text-orange-500' : 'text-red-500'} mb-3`}></i>
+                                <h2 className="text-2xl font-bold text-900 mb-2">
+                                    {isAuthenticationError ? 'Authentication Error' : 'Oops! Something went wrong'}
+                                </h2>
                                 <p className="text-600 mb-4">
-                                    We re sorry, but something unexpected happened. The error has been reported and were working to fix it.
+                                    {isAuthenticationError 
+                                        ? 'There was a problem with your authentication. Please try logging in again.'
+                                        : 'We re sorry, but something unexpected happened. The error has been reported and were working to fix it.'
+                                    }
                                 </p>
                             </div>
 
@@ -72,12 +90,21 @@ class ErrorBoundary extends React.Component {
                                     onClick={this.handleReload}
                                     className="p-button-primary"
                                 />
-                                <Button
-                                    label="Go to Dashboard"
-                                    icon="pi pi-home"
-                                    onClick={this.handleGoHome}
-                                    className="p-button-outlined"
-                                />
+                                {isAuthenticationError ? (
+                                    <Button
+                                        label="Login"
+                                        icon="pi pi-sign-in"
+                                        onClick={this.handleGoToLogin}
+                                        className="p-button-outlined"
+                                    />
+                                ) : (
+                                    <Button
+                                        label="Go to Dashboard"
+                                        icon="pi pi-home"
+                                        onClick={this.handleGoHome}
+                                        className="p-button-outlined"
+                                    />
+                                )}
                             </div>
 
                             {isDevelopment && this.state.error && (
